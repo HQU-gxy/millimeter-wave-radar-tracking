@@ -27,24 +27,27 @@ class Target(BaseModel, frozen=True):
         if data == bytes([0, 0, 0, 0, 0, 0, 0, 0]):
             return None
         x_ = int.from_bytes(data[0:2], byteorder='little',
-                            signed=False) & 0x7fff
+                            signed=False)
         # since it's little endian, the most significant bit is in the last byte (data[1])
-        x_sign = data[1] & 0x80 >= 1
-        x = x_ if x_sign else -x_
+        x_sign = x_ & 0x8000 >= 1
+        x__ = x_ & 0x7fff
+        x = x__ if x_sign else -x__
 
         y_ = int.from_bytes(data[2:4], byteorder='little',
-                            signed=False) & 0x7fff
-        y_sign = data[3] & 0x80 >= 1
-        y = y_ if y_sign else -y_
+                            signed=False)
+        y_sign = y_ & 0x8000 >= 1
+        y__ = y_ & 0x7fff
+        y = y__ if y_sign else -y__
 
         speed_ = int.from_bytes(data[4:6], byteorder='little',
-                                signed=False) & 0x7fff
+                                signed=False)
 
         def list_hex(data: bytes):
             return " ".join(f"{b:02x}" for b in data)
 
-        speed_sign = data[5] & 0x80 >= 1
-        speed = speed_ if speed_sign else -speed_
+        speed_sign = speed_ & 0x8000 >= 1
+        speed__ = speed_ & 0x7fff
+        speed = speed__ if speed_sign else -speed__
         resolution = int.from_bytes(data[6:8], byteorder="little", signed=False)
         return Target(coord=(x, y), speed=speed, resolution=resolution)
 
