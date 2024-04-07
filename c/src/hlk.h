@@ -15,6 +15,15 @@
 extern "C" {
 #endif
 
+/**
+ * @brief boolean true
+ */
+#define HLK_OK 1
+/**
+ * @brief boolean false
+ */
+#define HLK_ERR 0
+
 struct hlk_target {
   /*
    * @brief enable or disable the target
@@ -43,7 +52,7 @@ typedef struct hlk_result hlk_result_t;
  * @param [in] data the byte array
  * @param [in] size the size of the byte array
  * @param [out] target the target to unmarshal
- * @return int 0 on success, otherwise failure
+ * @return int HLK_OK on success, otherwise HLK_ERR
  */
 int hlk_unmarshal_target(const uint8_t *data, size_t size,
                          hlk_target_t *target);
@@ -53,7 +62,7 @@ int hlk_unmarshal_target(const uint8_t *data, size_t size,
  * @param [in] data the byte array
  * @param [in] size the size of the byte array
  * @param [in] result the result to unmarshal
- * @return int 0 on success, otherwise failure
+ * @return int HLK_OK on success, otherwise HLK_ERR
  */
 int hlk_unmarshal_result(const uint8_t *data, size_t size,
                          hlk_result_t *result);

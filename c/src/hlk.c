@@ -1,6 +1,5 @@
 #include "hlk.h"
 
-
 /**
  * @brief convert a msb signed short to a int16_t
  * @param value the msb signed short
@@ -16,7 +15,7 @@ static int16_t msb_signed_short(uint16_t value) {
  * @brief check if all the bytes in the data are empty (0x00)
  * @param [in] data
  * @param [in] len
- * @return int
+ * @return int 0 for false, 1 for true (all empty)
  */
 static int is_all_empty(const uint8_t *data, size_t len) {
   for (int i = 0; i < len; i++) {
@@ -31,7 +30,7 @@ static int is_all_empty(const uint8_t *data, size_t len) {
  * @brief check the endian of the system
  * @return int 1: little endian, 0: big endian
  */
-static int is_little_endian_() {
+static int calc_host_is_little_endian() {
   uint16_t x = 0x0001;
   return *((uint8_t *)&x) == 0x01;
 }
@@ -43,7 +42,7 @@ static int is_little_endian_() {
 static int8_t is_little_endian() {
   static int8_t little_endian = -1;
   if (little_endian == -1) {
-    little_endian = is_little_endian_();
+    little_endian = calc_host_is_little_endian();
   }
   return little_endian;
 }
@@ -69,7 +68,7 @@ static uint16_t htols(uint16_t x) {
 int hlk_unmarshal_target(const uint8_t *data, size_t len,
                          hlk_target_t *target) {
   if (len < 8) {
-    return -1;
+    return HLK_ERR;
   }
   if (is_all_empty(data, len)) {
     target->en = 0;
@@ -77,7 +76,7 @@ int hlk_unmarshal_target(const uint8_t *data, size_t len,
     target->y = 0;
     target->speed = 0;
     target->resolution = 0;
-    return 0;
+    return HLK_OK;
   }
   int offset = 0;
   uint16_t x_ = *((uint16_t *)(data + offset));
@@ -101,7 +100,7 @@ int hlk_unmarshal_target(const uint8_t *data, size_t len,
   target->y = y;
   target->speed = speed;
   target->resolution = resolution;
-  return 0;
+  return HLK_OK;
 }
 
 const uint8_t start_magic[] = {0xaa, 0xff, 0x03, 0x00};
@@ -112,17 +111,17 @@ int hlk_unmarshal_result(const uint8_t *data, size_t size,
   size_t offset = 0;
   int ok = memcmp(data, start_magic, sizeof(start_magic));
   if (ok != 0) {
-    return -1;
+    return HLK_ERR;
   }
   offset += sizeof(start_magic);
   const int CNT = sizeof(result->targets) / sizeof(result->targets[0]);
   for (int i = 0; i < CNT; i++) {
     hlk_target_t *target = &result->targets[i];
     int ret = hlk_unmarshal_target(data + offset, 8, target);
-    if (ret != 0) {
-      return -1;
+    if (ret != HLK_OK) {
+      return ret;
     }
     offset += 8;
   }
-  return 0;
+  return HLK_OK;
 }

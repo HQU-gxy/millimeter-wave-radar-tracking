@@ -16,7 +16,7 @@ int main() {
     std::cout << "speed: " << target.speed << std::endl;
     std::cout << "resolution: " << target.resolution << std::endl;
   }
-  assert(ok == 0);
+  assert(ok == HLK_OK);
   assert(result.targets[0].en == 0x01);
   assert(result.targets[0].x == -782);
   assert(result.targets[0].y == 1713);
