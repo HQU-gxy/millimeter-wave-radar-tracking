@@ -3,7 +3,10 @@ import click
 from loguru import logger
 from dataclasses import dataclass
 from pydantic import BaseModel
-from typing import Final, Tuple, List, Optional
+from anyio import create_task_group
+from anyio.to_thread import run_sync
+from typing import Final, Tuple, List, Optional, TypedDict, Generator, AsyncGenerator
+import streamlit as st
 
 
 class Target(BaseModel, frozen=True):
@@ -17,11 +20,13 @@ class Target(BaseModel, frozen=True):
         assert len(data) == 8, "Invalid data length"
         if data == bytes([0, 0, 0, 0, 0, 0, 0, 0]):
             return None
-        x_ = int.from_bytes(data[0:2], byteorder='little', signed=False) & 0x7fff
+        x_ = int.from_bytes(data[0:2], byteorder='little',
+                            signed=False) & 0x7fff
         x_sign = (data[0] & 0x80) >> 7
         x = x_ if x_sign == 1 else -x_
 
-        y_ = int.from_bytes(data[2:4], byteorder='little', signed=False) & 0x7fff
+        y_ = int.from_bytes(data[2:4], byteorder='little',
+                            signed=False) & 0x7fff
         y_sign = (data[2] & 0x80) >> 7
         y = y_ if y_sign == 1 else -y_
 
@@ -52,29 +57,51 @@ class Targets(BaseModel, frozen=True):
                 targets.append(target)
             offset += 8
         return Targets(targets=targets)
-    
+
+
 def test_unmarshal():
-    data = bytes([0xaa, 0xff, 0x03, 0x00,
-                  0x0e, 0x03, 0xb1, 0x86, 0x10, 0x00, 0x40, 0x01,
-                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+    data = bytes([
+        0xaa, 0xff, 0x03, 0x00, 0x0e, 0x03, 0xb1, 0x86, 0x10, 0x00, 0x40, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00
+    ])
     targets = Targets.unmarshal(data)
     assert len(targets.targets) == 1
     print(targets)
-                
+
+
+class Params(BaseModel, frozen=True):
+    port: str
+    baudrate: int
+
+
+class AppState(TypedDict):
+    ser: serial.Serial
+    gen: AsyncGenerator[Targets, None]
+
+
+@st.cache_resource
+def resource(params: Params) -> AppState:
+    ser = serial.Serial(params.port, params.baudrate)
+    logger.info(
+        f"Serial port {params.port} opened with baudrate {params.baudrate}")
+
+    async def gen():
+        while True:
+            data = await run_sync(lambda: ser.read_until(bytes([0x55, 0xcc])))
+            targets = Targets.unmarshal(data)
+            if targets is not None:
+                yield targets
+
+    return {"ser": ser, "gen": gen()}
 
 
 @click.command()
 @click.option('--port', default='/dev/ttyUSB0', help='Serial port', type=str)
 @click.option('--baudrate', default=256000, help='Baudrate', type=int)
 def main(port: str, baudrate: int):
-    ser = serial.Serial(port, baudrate)
-    logger.info(f"Serial port {port} opened with baudrate {baudrate}")
-    while True:
-        data = ser.read_until(bytes([0x55, 0xcc]))
-        targets = Targets.unmarshal(data)
-        logger.info(targets)
+    params = Params(port=port, baudrate=baudrate)
 
 
 if __name__ == '__main__':
-    main() # pylint: disable=no-value-for-parameter
+    main()  # pylint: disable=no-value-for-parameter
