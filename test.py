@@ -37,9 +37,9 @@ class Target(BaseModel, frozen=True):
         y = y_ if y_sign == 1 else -y_
 
         speed_sign = (data[4] & 0x80) >> 7
-        speed_mag = int.from_bytes(data[4:6], byteorder='little',
+        speed_ = int.from_bytes(data[4:6], byteorder='little',
                                    signed=False) & 0x7f
-        speed = speed_mag if speed_sign == 1 else -speed_mag
+        speed = speed_ if speed_sign == 1 else -speed_
         resolution = int.from_bytes(data[6:8], byteorder="little", signed=False)
         return Target(coord=(x, y), speed=speed, resolution=resolution)
 
@@ -73,6 +73,9 @@ def test_unmarshal():
     ])
     targets = Targets.unmarshal(data)
     assert len(targets.targets) == 1
+    assert targets.targets[0].coord == (-782, 1713)
+    assert targets.targets[0].speed == -16
+    assert targets.targets[0].resolution == 320
     print(targets)
 
 
@@ -109,15 +112,38 @@ def main(port: str, baudrate: int = 256000):
     target_1: Int[NDArray, "... 2"] = np.empty((0, 2))
     target_2: Int[NDArray, "... 2"] = np.empty((0, 2))
     target_3: Int[NDArray, "... 2"] = np.empty((0, 2))
+    target_1_vel = np.empty((1,))
+    target_2_vel = np.empty((1,))
+    target_3_vel = np.empty((1,))
+
+    resolution = np.empty((1,))
+
     target_window = st.empty()
+    speed_window = st.empty()
+    res_window = st.empty()
     for targets in app_state["gen"]:
+        COORD_MAX = 10
+        SPEED_MAX = 1_00
         for i, target in enumerate(targets.targets):
+            MM_2_M = 1 / 1_000
+            CM_2_M = 1 / 100
             if i == 0:
-                target_1 = np.vstack((target_1, np.array([target.coord])))
+                target_1 = np.vstack(
+                    (target_1, np.array([target.coord]) * MM_2_M))[-COORD_MAX:]
+                target_1_vel = np.append(target_1_vel,
+                                         target.speed * CM_2_M)[-SPEED_MAX:]
+                resolution = np.append(resolution,
+                                       target.resolution)[-SPEED_MAX:]
             elif i == 1:
-                target_2 = np.vstack((target_2, np.array([target.coord])))
+                target_2 = np.vstack(
+                    (target_2, np.array([target.coord]) * MM_2_M))[-COORD_MAX:]
+                target_2_vel = np.append(target_2_vel,
+                                         target.speed * CM_2_M)[-SPEED_MAX:]
             elif i == 2:
-                target_3 = np.vstack((target_3, np.array([target.coord])))
+                target_3 = np.vstack(
+                    (target_3, np.array([target.coord]) * MM_2_M))[-COORD_MAX:]
+                target_3_vel = np.append(target_3_vel,
+                                         target.speed * CM_2_M)[-SPEED_MAX:]
         data = {
             "data": [
                 Scatter(x=target_1[:, 0],
@@ -134,10 +160,49 @@ def main(port: str, baudrate: int = 256000):
                         name="Target 3"),
             ],
         }
+        data_vel = {
+            "data": [
+                Scatter(x=np.arange(len(target_1_vel)),
+                        y=target_1_vel,
+                        mode="lines",
+                        name="Target 1"),
+                Scatter(x=np.arange(len(target_2_vel)),
+                        y=target_2_vel,
+                        mode="lines",
+                        name="Target 2"),
+                Scatter(x=np.arange(len(target_3_vel)),
+                        y=target_3_vel,
+                        mode="lines",
+                        name="Target 3"),
+            ],
+        }
+        data_res = {
+            "data": [
+                Scatter(x=np.arange(len(resolution)),
+                        y=resolution,
+                        mode="lines",
+                        name="Resolution"),
+            ],
+        }
+
         fig = go.Figure(data)
         fig.update_layout(showlegend=True)
+        fig.update_xaxes(range=[-2, 2])
+        fig.update_yaxes(range=[-2, 2])
+        fig.update_xaxes(title_text="X (m)")
+        fig.update_yaxes(title_text="Y (m)")
+        
+        fig_vel = go.Figure(data_vel)
+        fig_vel.update_layout(showlegend=True)
+        fig_vel.update_xaxes(title_text="Sample number")
+        fig_vel.update_yaxes(title_text="Speed (m/s)")
+        fig_vel.update_yaxes(range=[-1, 1])
+        
         target_window.plotly_chart(fig)
+        speed_window.plotly_chart(fig_vel)
+        res_window.plotly_chart(go.Figure(data_res))
 
 
 if __name__ == '__main__':
-    main(port="/dev/cu.usbserial-5")
+    main(port="/dev/cu.usbserial-0001")
+    # test_unmarshal()
