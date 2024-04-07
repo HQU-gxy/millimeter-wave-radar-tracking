@@ -6,7 +6,13 @@ from pydantic import BaseModel
 from anyio import create_task_group
 from anyio.to_thread import run_sync
 from typing import Final, Tuple, List, Optional, TypedDict, Generator, AsyncGenerator
+import numpy as np
+import plotly.graph_objects as go
+from plotly.graph_objects import Scatter
+from jaxtyping import Num, Float, Int
 import streamlit as st
+
+NDArray = np.ndarray
 
 
 class Target(BaseModel, frozen=True):
@@ -77,18 +83,18 @@ class Params(BaseModel, frozen=True):
 
 class AppState(TypedDict):
     ser: serial.Serial
-    gen: AsyncGenerator[Targets, None]
+    gen: Generator[Targets, None, None]
 
 
 @st.cache_resource
-def resource(params: Params) -> AppState:
-    ser = serial.Serial(params.port, params.baudrate)
+def resource(_params: Params) -> AppState:
+    ser = serial.Serial(_params.port, _params.baudrate)
     logger.info(
-        f"Serial port {params.port} opened with baudrate {params.baudrate}")
+        f"Serial port {_params.port} opened with baudrate {_params.baudrate}")
 
-    async def gen():
+    def gen():
         while True:
-            data = await run_sync(lambda: ser.read_until(bytes([0x55, 0xcc])))
+            data = ser.read_until(bytes([0x55, 0xcc]))
             targets = Targets.unmarshal(data)
             if targets is not None:
                 yield targets
@@ -96,12 +102,42 @@ def resource(params: Params) -> AppState:
     return {"ser": ser, "gen": gen()}
 
 
-@click.command()
-@click.option('--port', default='/dev/ttyUSB0', help='Serial port', type=str)
-@click.option('--baudrate', default=256000, help='Baudrate', type=int)
-def main(port: str, baudrate: int):
+def main(port: str, baudrate: int = 256000):
     params = Params(port=port, baudrate=baudrate)
+    app_state = resource(params)
+    st.title("Radar Target Tracking")
+    target_1: Int[NDArray, "... 2"] = np.empty((0, 2))
+    target_2: Int[NDArray, "... 2"] = np.empty((0, 2))
+    target_3: Int[NDArray, "... 2"] = np.empty((0, 2))
+    target_window = st.empty()
+    for targets in app_state["gen"]:
+        for i, target in enumerate(targets.targets):
+            if i == 0:
+                target_1 = np.vstack((target_1, np.array([target.coord])))
+            elif i == 1:
+                target_2 = np.vstack((target_2, np.array([target.coord])))
+            elif i == 2:
+                target_3 = np.vstack((target_3, np.array([target.coord])))
+        data = {
+            "data": [
+                Scatter(x=target_1[:, 0],
+                        y=target_1[:, 1],
+                        mode="markers",
+                        name="Target 1"),
+                Scatter(x=target_2[:, 0],
+                        y=target_2[:, 1],
+                        mode="markers",
+                        name="Target 2"),
+                Scatter(x=target_3[:, 0],
+                        y=target_3[:, 1],
+                        mode="markers",
+                        name="Target 3"),
+            ],
+        }
+        fig = go.Figure(data)
+        fig.update_layout(showlegend=True)
+        target_window.plotly_chart(fig)
 
 
 if __name__ == '__main__':
-    main()  # pylint: disable=no-value-for-parameter
+    main(port="/dev/cu.usbserial-5")
