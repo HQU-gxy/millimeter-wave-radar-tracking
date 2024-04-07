@@ -136,7 +136,6 @@ def main(port: str, baudrate: int = 256000):
 
     target_window = st.empty()
     speed_window = st.empty()
-    res_window = st.empty()
     for targets in app_state["gen"]:
         COORD_MAX = 10
         SPEED_MAX = 1_00
@@ -148,8 +147,6 @@ def main(port: str, baudrate: int = 256000):
                     (target_1, np.array([target.coord]) * MM_2_M))[-COORD_MAX:]
                 target_1_vel = np.append(target_1_vel,
                                          target.speed * CM_2_M)[-SPEED_MAX:]
-                resolution = np.append(resolution,
-                                       target.resolution)[-SPEED_MAX:]
             elif i == 1:
                 target_2 = np.vstack(
                     (target_2, np.array([target.coord]) * MM_2_M))[-COORD_MAX:]
@@ -192,19 +189,11 @@ def main(port: str, baudrate: int = 256000):
                         name="Target 3"),
             ],
         }
-        data_res = {
-            "data": [
-                Scatter(x=np.arange(len(resolution)),
-                        y=resolution,
-                        mode="lines",
-                        name="Resolution"),
-            ],
-        }
 
         fig = go.Figure(data)
         fig.update_layout(showlegend=True)
         fig.update_xaxes(range=[-3, 3])
-        fig.update_yaxes(range=[-1, 5])
+        fig.update_yaxes(range=[0, 3])
         fig.update_xaxes(title_text="X (m)")
         fig.update_yaxes(title_text="Y (m)")
 
@@ -212,11 +201,10 @@ def main(port: str, baudrate: int = 256000):
         fig_vel.update_layout(showlegend=True)
         fig_vel.update_xaxes(title_text="Sample number")
         fig_vel.update_yaxes(title_text="Speed (m/s)")
-        fig_vel.update_yaxes(range=[-1, 1])
+        fig_vel.update_yaxes(range=[-0.5, 0.5])
 
         target_window.plotly_chart(fig)
         speed_window.plotly_chart(fig_vel)
-        res_window.plotly_chart(go.Figure(data_res))
 
 
 if __name__ == '__main__':
