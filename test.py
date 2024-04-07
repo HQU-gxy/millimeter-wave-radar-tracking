@@ -28,18 +28,23 @@ class Target(BaseModel, frozen=True):
             return None
         x_ = int.from_bytes(data[0:2], byteorder='little',
                             signed=False) & 0x7fff
-        x_sign = (data[0] & 0x80) >> 7
-        x = x_ if x_sign == 1 else -x_
+        # since it's little endian, the most significant bit is in the last byte (data[1])
+        x_sign = data[1] & 0x80 >= 1
+        x = x_ if x_sign else -x_
 
         y_ = int.from_bytes(data[2:4], byteorder='little',
                             signed=False) & 0x7fff
-        y_sign = (data[2] & 0x80) >> 7
-        y = y_ if y_sign == 1 else -y_
+        y_sign = data[3] & 0x80 >= 1
+        y = y_ if y_sign else -y_
 
-        speed_sign = (data[4] & 0x80) >> 7
         speed_ = int.from_bytes(data[4:6], byteorder='little',
-                                   signed=False) & 0x7f
-        speed = speed_ if speed_sign == 1 else -speed_
+                                signed=False) & 0x7fff
+
+        def list_hex(data: bytes):
+            return " ".join(f"{b:02x}" for b in data)
+
+        speed_sign = data[5] & 0x80 >= 1
+        speed = speed_ if speed_sign else -speed_
         resolution = int.from_bytes(data[6:8], byteorder="little", signed=False)
         return Target(coord=(x, y), speed=speed, resolution=resolution)
 
@@ -109,12 +114,12 @@ def main(port: str, baudrate: int = 256000):
     params = Params(port=port, baudrate=baudrate)
     app_state = resource(params)
     st.title("Radar Target Tracking")
-    target_1: Int[NDArray, "... 2"] = np.empty((0, 2))
-    target_2: Int[NDArray, "... 2"] = np.empty((0, 2))
-    target_3: Int[NDArray, "... 2"] = np.empty((0, 2))
-    target_1_vel = np.empty((1,))
-    target_2_vel = np.empty((1,))
-    target_3_vel = np.empty((1,))
+    target_1: Int[NDArray, "... 2"] = np.empty((0, 2), dtype=np.float32)
+    target_2: Int[NDArray, "... 2"] = np.empty((0, 2), dtype=np.float32)
+    target_3: Int[NDArray, "... 2"] = np.empty((0, 2), dtype=np.float32)
+    target_1_vel = np.empty((1,), dtype=np.float32)
+    target_2_vel = np.empty((1,), dtype=np.float32)
+    target_3_vel = np.empty((1,), dtype=np.float32)
 
     resolution = np.empty((1,))
 
@@ -126,7 +131,7 @@ def main(port: str, baudrate: int = 256000):
         SPEED_MAX = 1_00
         for i, target in enumerate(targets.targets):
             MM_2_M = 1 / 1_000
-            CM_2_M = 1 / 100
+            CM_2_M = 1 / 1_000
             if i == 0:
                 target_1 = np.vstack(
                     (target_1, np.array([target.coord]) * MM_2_M))[-COORD_MAX:]
@@ -187,17 +192,17 @@ def main(port: str, baudrate: int = 256000):
 
         fig = go.Figure(data)
         fig.update_layout(showlegend=True)
-        fig.update_xaxes(range=[-2, 2])
-        fig.update_yaxes(range=[-2, 2])
+        fig.update_xaxes(range=[-3, 3])
+        fig.update_yaxes(range=[-3, 3])
         fig.update_xaxes(title_text="X (m)")
         fig.update_yaxes(title_text="Y (m)")
-        
+
         fig_vel = go.Figure(data_vel)
         fig_vel.update_layout(showlegend=True)
         fig_vel.update_xaxes(title_text="Sample number")
         fig_vel.update_yaxes(title_text="Speed (m/s)")
         fig_vel.update_yaxes(range=[-1, 1])
-        
+
         target_window.plotly_chart(fig)
         speed_window.plotly_chart(fig_vel)
         res_window.plotly_chart(go.Figure(data_res))
