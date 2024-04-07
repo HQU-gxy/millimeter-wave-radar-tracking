@@ -2,12 +2,12 @@
 #define E1A63B77_CF24_4CF0_AC38_40EC28E0338A
 
 #ifdef __cplusplus
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #else
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 #endif
 
@@ -36,13 +36,6 @@ struct hlk_result {
 };
 
 typedef struct hlk_result hlk_result_t;
-
-/**
- * @brief convert a msb signed short to a int16_t
- * @param value the msb signed short
- * @return int16_t the converted value
- */
-int16_t hlk_msb_signed_short(uint16_t value);
 
 /**
  * @brief unmarshal a target from a byte array
