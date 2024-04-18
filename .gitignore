@@ -164,3 +164,4 @@ cmake-*
 *.avi
 *.mp4
 .DS_Store
+*.img
