@@ -165,3 +165,4 @@ cmake-*
 *.mp4
 .DS_Store
 *.img
+result.json
