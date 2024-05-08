@@ -628,6 +628,16 @@ def main(
                                        cv2.CHAIN_APPROX_SIMPLE)
         dets: list[DetectionFeatures] = []
         detections: NDArray = np.empty((0, 2), dtype=np.float32)
+
+        def is_in_ROI(pt: tuple[int, int], frame: MatLike) -> bool:
+            THRESHOLD_Y_RATIO = float(568 / 1200)
+            w = frame.shape[1]
+            h = frame.shape[0]
+            x, y = pt
+            if y < h * THRESHOLD_Y_RATIO:
+                return False
+            return True
+
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
             area = cv2.contourArea(contour)
@@ -647,7 +657,9 @@ def main(
                 dets.append(features)
                 detections = np.vstack([detections, [cX, cY]])
                 if writer is not None:
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                    if is_in_ROI((cX, cY), frame):
+                        cv2.rectangle(frame, (x, y), (x + w, y + h),
+                                      (0, 255, 0), 2)
         tracker.next_measurements(detections, params)
         detections_history.append(dets)
         tenative_histories.append(tracker._tentative_tracks.copy())
@@ -659,9 +671,10 @@ def main(
                 x, y, *_ = confirmed.state.x.ravel()
                 x = int(x)
                 y = int(y)
-                color_ = colors[id]
-                color = tuple(color_.tolist())
-                cv.circle(frame, (int(x), int(y)), 5, color, -1)
+                if is_in_ROI((x, y), frame):
+                    color_ = colors[id]
+                    color = tuple(color_.tolist())
+                    cv.circle(frame, (int(x), int(y)), 5, color, -1)
             writer.write(frame)
 
     try:
