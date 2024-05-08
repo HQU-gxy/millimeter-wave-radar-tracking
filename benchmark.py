@@ -597,7 +597,7 @@ def main(
         confirm_mahalanobis_threshold=25.0,
         forming_tracks_euclidean_threshold=20,
         dt=1.0,
-        survival_steps_threshold=6,
+        survival_steps_threshold=8,
     )
 
     frames, props = video_cap(input, scale)
@@ -620,6 +620,9 @@ def main(
 
     def process(frame: MatLike):
         area_upper_threshold = frame.shape[0] * frame.shape[1] * 0.75
+        width_upper_threshold = frame.shape[1] * 0.7
+        height_lower_threshold = frame.shape[0] * 0.1
+        overlay = frame.copy()
         fgmask = subtractor.apply(frame)
         OPEN_KERNEL_SIZE = 11
         fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_DILATE,
@@ -630,7 +633,7 @@ def main(
         detections: NDArray = np.empty((0, 2), dtype=np.float32)
 
         def is_in_ROI(pt: tuple[int, int], frame: MatLike) -> bool:
-            THRESHOLD_Y_RATIO = float(568 / 1200)
+            THRESHOLD_Y_RATIO = float(600 / 1200)
             w = frame.shape[1]
             h = frame.shape[0]
             x, y = pt
@@ -638,10 +641,21 @@ def main(
                 return False
             return True
 
+        def is_valid_bb(bb: tuple[int, int, int, int],
+                        area: int | float) -> bool:
+            if w > width_upper_threshold:
+                return False
+            if h < height_lower_threshold:
+                return False
+            area_crit = AREA_THRESHOLD < area < area_upper_threshold
+            if not area_crit:
+                return False
+            return True
+
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
             area = cv2.contourArea(contour)
-            if AREA_THRESHOLD < area < area_upper_threshold:
+            if is_valid_bb((x, y, w, h), area):
                 M = cv2.moments(contour)
                 cX = int(M["m10"] / M["m00"])
                 cY = int(M["m01"] / M["m00"])
@@ -658,8 +672,15 @@ def main(
                 detections = np.vstack([detections, [cX, cY]])
                 if writer is not None:
                     if is_in_ROI((cX, cY), frame):
-                        cv2.rectangle(frame, (x, y), (x + w, y + h),
+                        cv2.rectangle(overlay, (x, y), (x + w, y + h),
                                       (0, 255, 0), 2)
+                    else:
+                        cv2.rectangle(overlay, (x, y), (x + w, y + h),
+                                      (0, 0, 255), 2)
+            else:
+                if writer is not None:
+                    cv2.rectangle(overlay, (x, y), (x + w, y + h), (30, 0, 128),
+                                  2)
         tracker.next_measurements(detections, params)
         detections_history.append(dets)
         tenative_histories.append(tracker._tentative_tracks.copy())
@@ -674,7 +695,10 @@ def main(
                 if is_in_ROI((x, y), frame):
                     color_ = colors[id]
                     color = tuple(color_.tolist())
-                    cv.circle(frame, (int(x), int(y)), 5, color, -1)
+                    cv.circle(overlay, (int(x), int(y)), 5, color, -1)
+            # https://stackoverflow.com/questions/69432439/how-to-add-transparency-to-a-line-with-opencv-python
+            ALPHA = 0.55
+            cv.addWeighted(overlay, ALPHA, frame, 1 - ALPHA, 0, frame)
             writer.write(frame)
 
     try:
