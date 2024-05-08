@@ -4,6 +4,7 @@ from pathlib import Path
 from json import JSONEncoder, JSONDecoder
 from os import PathLike
 
+import click
 import cv2
 import cv2 as cv
 import numpy as np
@@ -12,6 +13,7 @@ from loguru import logger
 from numpy.typing import ArrayLike, DTypeLike, NDArray
 from scipy.optimize import linear_sum_assignment
 from tqdm import tqdm
+from traitlets import default
 
 MatLike = NDArray
 # https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.linear_sum_assignment.html
@@ -511,10 +513,13 @@ def fourcc(*args: str) -> int:
     return cv2.VideoWriter_fourcc(*args)  # type: ignore
 
 
+VideoGenerator = Generator[MatLike, None, None]
+
+
 def video_cap(
     src: PathLike | int | str,
     scale: float = 1,
-) -> Tuple[Generator[MatLike, None, None], CapProps]:
+) -> Tuple[VideoGenerator, CapProps]:
     assert 0 < scale <= 1, "scale should be in (0, 1]"
     if isinstance(src, PathLike):
         cap = cv2.VideoCapture(str(src))
@@ -554,7 +559,31 @@ class DetectionFeatures(TypedDict):
     cY: int
 
 
-def main():
+@click.command()
+@click.argument("input", type=click.Path(exists=True))
+@click.option("scale",
+              "--scale",
+              type=float,
+              default=1.0,
+              help="resize scale. should be in (0, 1]")
+@click.option("json_output",
+              "--json-output",
+              type=click.Path(),
+              help="output config file",
+              default=None)
+@click.option(
+    "video_output",
+    "--video-output",
+    type=str,
+    help=
+    "output video file. if the value is `auto` then the output file will be named as the input file with mp4 extension.",
+    default=None)
+def main(
+    input: str,
+    scale: float,
+    json_output: Optional[str],
+    video_output: Optional[str],
+):
     tracker = Tracker()
 
     detections_history: list[list[DetectionFeatures]] = []
@@ -570,7 +599,19 @@ def main():
         survival_steps_threshold=6,
     )
 
-    frames, props = video_cap("PETS09-S2L1-raw.mp4", 0.5)
+    frames, props = video_cap(input, scale)
+    if video_output == "auto":
+        video_output = f"{Path(input).stem}_benchmark.mp4"
+    if video_output is not None:
+        logger.info("Saving video to {}", video_output)
+        output_path = Path(video_output)
+        fourcc_ = fourcc(*"mp4v")
+        assert output_path.suffix == ".mp4", "output should be mp4 file"
+        writer = cv2.VideoWriter(video_output, fourcc_, props.fps,
+                                 (props.width, props.height))
+    else:
+        writer = None
+    colors = np.random.randint(0, 255, size=(1024, 3))
     subtractor = cv2.createBackgroundSubtractorMOG2(detectShadows=False)
     logger.info("Video properties: {}", props)
 
@@ -598,10 +639,23 @@ def main():
                 }
                 dets.append(features)
                 detections = np.vstack([detections, [cX, cY]])
+                if writer is not None:
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
         tracker.next_measurements(detections, params)
         detections_history.append(dets)
         tenative_histories.append(tracker._tentative_tracks.copy())
         confirmed_histories.append(tracker._confirmed_tracks.copy())
+
+        if writer is not None:
+            for confirmed in tracker.confirmed_tracks:
+                id = confirmed.id
+                x, y, *_ = confirmed.state.x.ravel()
+                x = int(x)
+                y = int(y)
+                color_ = colors[id]
+                color = tuple(color_.tolist())
+                cv.circle(frame, (int(x), int(y)), 5, color, -1)
+            writer.write(frame)
 
     try:
         for frame in tqdm(frames, total=props.frame_count):
@@ -609,16 +663,21 @@ def main():
     except Exception as e:
         logger.exception(e)
     finally:
-        with open("result.json", "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "props": props.__dict__,
-                    "detections_history": detections_history,
-                    "confirmed_histories": confirmed_histories
-                },
-                f,
-                cls=TrackingEncoder)
+        if writer is not None:
+            logger.info("Saving video to {}", video_output)
+            writer.release()
+        if json_output is not None:
+            logger.info("Writing history to {}", json_output)
+            with open("result.json", "w", encoding="utf-8") as f:
+                json.dump(
+                    {
+                        "props": props.__dict__,
+                        "detections_history": detections_history,
+                        "confirmed_histories": confirmed_histories
+                    },
+                    f,
+                    cls=TrackingEncoder)
 
 
 if __name__ == "__main__":
-    main()
+    main()  # pylint: disable=no-value-for-parameter

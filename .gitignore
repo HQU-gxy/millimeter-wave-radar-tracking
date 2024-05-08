@@ -163,6 +163,8 @@ build
 cmake-*
 *.avi
 *.mp4
-.DS_Store
 *.img
+*.mkv
+
+.DS_Store
 result.json
