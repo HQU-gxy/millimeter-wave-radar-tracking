@@ -680,10 +680,12 @@ def main(
                     "cX": cX,
                     "cY": cY
                 }
-                dets.append(features)
-                detections = np.vstack([detections, [cX, cY]])
+                in_ROI = is_in_ROI((cX, cY), frame)
+                if in_ROI:
+                    dets.append(features)
+                    detections = np.vstack([detections, [cX, cY]])
                 if writer is not None:
-                    if is_in_ROI((cX, cY), frame):
+                    if in_ROI:
                         cv2.rectangle(overlay, (x, y), (x + w, y + h),
                                       (0, 255, 0), 2)
                     else:
