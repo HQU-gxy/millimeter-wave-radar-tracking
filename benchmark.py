@@ -624,9 +624,10 @@ def main(
         height_lower_threshold = frame.shape[0] * 0.1
         overlay = frame.copy()
         fgmask = subtractor.apply(frame)
-        OPEN_KERNEL_SIZE = 11
-        fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_DILATE,
-                                  np.ones((OPEN_KERNEL_SIZE, OPEN_KERNEL_SIZE)))
+        MORPH_KERNEL_SIZE = 11
+        fgmask = cv2.morphologyEx(
+            fgmask, cv2.MORPH_DILATE,
+            np.ones((MORPH_KERNEL_SIZE, MORPH_KERNEL_SIZE)))
         contours, _ = cv2.findContours(fgmask, cv2.RETR_EXTERNAL,
                                        cv2.CHAIN_APPROX_SIMPLE)
         dets: list[DetectionFeatures] = []
@@ -641,8 +642,19 @@ def main(
                 return False
             return True
 
-        def is_valid_bb(bb: tuple[int, int, int, int],
+        def is_valid_bb(xywh: tuple[int, int, int, int],
                         area: int | float) -> bool:
+            """
+            Check if the bounding box is valid
+
+            Parameters
+            ----------
+            xywh: tuple[int, int, int, int]
+                x, y, w, h (i.e. bounding box)
+            area: int | float
+                area of the bounding box
+            """
+            x, y, w, h = xywh
             if w > width_upper_threshold:
                 return False
             if h < height_lower_threshold:
