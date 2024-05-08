@@ -584,6 +584,7 @@ def main(
     json_output: Optional[str],
     video_output: Optional[str],
 ):
+    AREA_THRESHOLD = 30 * 30
     tracker = Tracker()
 
     detections_history: list[list[DetectionFeatures]] = []
@@ -612,11 +613,17 @@ def main(
     else:
         writer = None
     colors = np.random.randint(0, 255, size=(1024, 3))
-    subtractor = cv2.createBackgroundSubtractorMOG2(detectShadows=False)
+    subtractor = cv2.createBackgroundSubtractorMOG2(history=512,
+                                                    varThreshold=16,
+                                                    detectShadows=False)
     logger.info("Video properties: {}", props)
 
     def process(frame: MatLike):
+        area_upper_threshold = frame.shape[0] * frame.shape[1] * 0.75
         fgmask = subtractor.apply(frame)
+        OPEN_KERNEL_SIZE = 11
+        fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_DILATE,
+                                  np.ones((OPEN_KERNEL_SIZE, OPEN_KERNEL_SIZE)))
         contours, _ = cv2.findContours(fgmask, cv2.RETR_EXTERNAL,
                                        cv2.CHAIN_APPROX_SIMPLE)
         dets: list[DetectionFeatures] = []
@@ -624,7 +631,7 @@ def main(
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
             area = cv2.contourArea(contour)
-            if area > 60:
+            if AREA_THRESHOLD < area < area_upper_threshold:
                 M = cv2.moments(contour)
                 cX = int(M["m10"] / M["m00"])
                 cY = int(M["m01"] / M["m00"])
