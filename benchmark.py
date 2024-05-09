@@ -1,9 +1,9 @@
 from dataclasses import dataclass
-from typing import Generator, Tuple, TypedDict, Optional
+from typing import Generator, Tuple, TypeAlias, TypedDict, Optional, Union
 from pathlib import Path
 from json import JSONEncoder, JSONDecoder
 from os import PathLike
-
+from enum import Enum, auto
 import click
 import cv2
 import cv2 as cv
@@ -504,7 +504,6 @@ class Tracker:
 class CapProps:
     width: int
     height: int
-    channels: int
     fps: float
     frame_count: Optional[int] = None
 
@@ -516,24 +515,92 @@ def fourcc(*args: str) -> int:
 VideoGenerator = Generator[MatLike, None, None]
 
 
+class FixedScale:
+    _scale: float
+
+    __match_args__ = ("scale",)
+
+    def __init__(self, scale: float):
+        assert 0 < scale <= 1, "scale should be in (0, 1]"
+        self._scale = scale
+
+    def __hash__(self):
+        return hash(self._scale)
+
+    def __eq__(self, other):
+        if not isinstance(other, FixedScale):
+            return False
+        return self._scale == other._scale
+
+    @property
+    def scale(self):
+        return self._scale
+
+
+class Side(Enum):
+    WIDTH = auto()
+    HEIGHT = auto()
+
+
+class FixedSide:
+    _side: Side
+    _value: int
+
+    __match_args__ = ("side", "value")
+
+    def __init__(self, side: Side, value: int):
+        self._side = side
+        self._value = value
+
+    def __hash__(self):
+        return hash((self._side, self._value))
+
+    def __eq__(self, other):
+        if not isinstance(other, FixedSide):
+            return False
+        return self._side == other._side and self._value == other._value
+
+    @property
+    def side(self):
+        return self._side
+
+    @property
+    def value(self):
+        return self._value
+
+
+Rescale: TypeAlias = Union[FixedScale, FixedSide]
+
+
 def video_cap(
     src: PathLike | int | str,
-    scale: float = 1,
+    scale: Optional[Rescale] = None,
 ) -> Tuple[VideoGenerator, CapProps]:
-    assert 0 < scale <= 1, "scale should be in (0, 1]"
     if isinstance(src, PathLike):
         cap = cv2.VideoCapture(str(src))
     else:
         cap = cv2.VideoCapture(src)
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) * scale)
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) * scale)
+    cap_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    cap_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    ar = cap_width / cap_height
+    match scale:
+        case FixedScale(s):
+            width = int(cap_width * s)
+            height = int(cap_height * s)
+        case FixedSide(Side.WIDTH, v):
+            width = v
+            height = int(v / ar)
+        case FixedSide(Side.HEIGHT, v):
+            height = v
+            width = int(v * ar)
+        case _:
+            width = cap_width
+            height = cap_height
     fps = float(cap.get(cv2.CAP_PROP_FPS))
     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    channels = int(cap.get(cv2.CAP_PROP_CHANNEL))
     props = CapProps(width=width,
                      height=height,
                      fps=fps,
-                     channels=channels,
                      frame_count=frame_count)
 
     def gen():
@@ -541,7 +608,7 @@ def video_cap(
             ret, frame = cap.read()
             if not ret:
                 break
-            if scale != 1:
+            if width != cap_width or height != cap_height:
                 frame = cv2.resize(frame, (width, height))
             yield frame
         cap.release()
@@ -561,11 +628,6 @@ class DetectionFeatures(TypedDict):
 
 @click.command()
 @click.argument("input", type=click.Path(exists=True))
-@click.option("scale",
-              "--scale",
-              type=float,
-              default=1.0,
-              help="resize scale. should be in (0, 1]")
 @click.option("json_output",
               "--json-output",
               type=click.Path(),
@@ -580,7 +642,6 @@ class DetectionFeatures(TypedDict):
     default=None)
 def main(
     input: str,
-    scale: float,
     json_output: Optional[str],
     video_output: Optional[str],
 ):
@@ -600,7 +661,8 @@ def main(
         survival_steps_threshold=8,
     )
 
-    frames, props = video_cap(input, scale)
+    rescale = FixedSide(Side.WIDTH, 288)
+    frames, props = video_cap(input, rescale)
     if video_output == "auto":
         video_output = f"{Path(input).stem}_benchmark.mp4"
     if video_output is not None:

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from loguru import logger
 
+
 @dataclass
 class Props:
     width: int
@@ -45,9 +46,10 @@ def frame_gen(index: int,
 def main():
     props_ = Props(width=640, height=480, fps=30)
     frames, props = frame_gen(0, props_)
-    logger.info(f"Width: {props.width}, Height: {props.height}, FPS: {props.fps}")
+    logger.info(
+        f"Width: {props.width}, Height: {props.height}, FPS: {props.fps}")
     date = datetime.now()
-    output_name = f"video-{date.strftime('%Y-%m-%d-%H-%M-%S')}.mp4"
+    output_name = f"video-{date.strftime('%Y-%m-%d-%H-%M-%S')}.raw.mkv"
     logger.info(f"Output: {output_name}")
     writer = cv2.VideoWriter(output_name, fourcc(*"mp4v"), props.fps,
                              (props.width, props.height))

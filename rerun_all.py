@@ -12,8 +12,6 @@ def main():
             PYTHON,
             SCRIPT,
             video,
-            "--scale",
-            "0.18",
             "--video-output",
             "auto",
         ]
