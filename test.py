@@ -1,3 +1,4 @@
+import datetime
 import serial
 import click
 from loguru import logger
@@ -6,20 +7,35 @@ from pydantic import BaseModel
 from anyio import create_task_group
 from anyio.to_thread import run_sync
 from typing import Final, Tuple, List, Optional, TypedDict, Generator, AsyncGenerator
+from collections import deque
 import numpy as np
 import plotly.graph_objects as go
 from plotly.graph_objects import Scatter
 from jaxtyping import Num, Float, Int
+from datetime import datetime, timedelta
 import streamlit as st
 
 NDArray = np.ndarray
 
 
 class Target(BaseModel, frozen=True):
-    # seems little endian
-    coord: Tuple[int, int]  # in millimeters, uint_16_t (MSB is the sign bit)
-    speed: int  # only magnitude, in cm/s, uint16_t (MSB is the sign bit)
+    """
+    in millimeters, uint_16_t (MSB is the sign bit) in little endian
+    """
+    coord: Tuple[int, int]
+    """
+    only magnitude, in cm/s, uint16_t (MSB is the sign bit)
+    """
+    speed: int
     resolution: int  # uint16_t
+
+    @property
+    def coord_si(self) -> Tuple[float, float]:
+        return self.coord[0] / 1000, self.coord[1] / 1000
+
+    @property
+    def speed_si(self) -> float:
+        return self.speed / 100
 
     @staticmethod
     def unmarshal(data: bytes) -> Optional["Target"]:
@@ -29,6 +45,7 @@ class Target(BaseModel, frozen=True):
 
         def list_hex(data: bytes):
             return " ".join(f"{b:02x}" for b in data)
+
         def msb_bit_int16(num: int) -> int:
             """
             Some genius decided to use the most significant bit as the sign bit
@@ -42,18 +59,15 @@ class Target(BaseModel, frozen=True):
             sign = num & 0x8000 >= 1
             n = num & 0x7fff
             return n if sign else -n
-        
-        x_ = int.from_bytes(data[0:2], byteorder='little',
-                            signed=False)
+
+        x_ = int.from_bytes(data[0:2], byteorder='little', signed=False)
         # since it's little endian, the most significant bit is in the last byte (data[1])
         x = msb_bit_int16(x_)
 
-        y_ = int.from_bytes(data[2:4], byteorder='little',
-                            signed=False)
+        y_ = int.from_bytes(data[2:4], byteorder='little', signed=False)
         y = msb_bit_int16(y_)
 
-        speed_ = int.from_bytes(data[4:6], byteorder='little',
-                                signed=False)
+        speed_ = int.from_bytes(data[4:6], byteorder='little', signed=False)
 
         speed = msb_bit_int16(speed_)
         resolution = int.from_bytes(data[6:8], byteorder="little", signed=False)
@@ -125,72 +139,54 @@ def main(port: str, baudrate: int = 256000):
     params = Params(port=port, baudrate=baudrate)
     app_state = resource(params)
     st.title("Radar Target Tracking")
-    target_1: Int[NDArray, "... 2"] = np.empty((0, 2), dtype=np.float32)
-    target_2: Int[NDArray, "... 2"] = np.empty((0, 2), dtype=np.float32)
-    target_3: Int[NDArray, "... 2"] = np.empty((0, 2), dtype=np.float32)
-    target_1_vel = np.empty((1,), dtype=np.float32)
-    target_2_vel = np.empty((1,), dtype=np.float32)
-    target_3_vel = np.empty((1,), dtype=np.float32)
-
-    resolution = np.empty((1,))
+    WINDOW_SIZE = 100
+    targets: deque[tuple[Targets, datetime]] = deque(maxlen=WINDOW_SIZE)
 
     target_window = st.empty()
     speed_window = st.empty()
-    for targets in app_state["gen"]:
-        COORD_MAX = 10
-        SPEED_MAX = 1_00
-        for i, target in enumerate(targets.targets):
-            MM_2_M = 1 / 1_000
-            CM_2_M = 1 / 1_000
-            if i == 0:
-                target_1 = np.vstack(
-                    (target_1, np.array([target.coord]) * MM_2_M))[-COORD_MAX:]
-                target_1_vel = np.append(target_1_vel,
-                                         target.speed * CM_2_M)[-SPEED_MAX:]
-            elif i == 1:
-                target_2 = np.vstack(
-                    (target_2, np.array([target.coord]) * MM_2_M))[-COORD_MAX:]
-                target_2_vel = np.append(target_2_vel,
-                                         target.speed * CM_2_M)[-SPEED_MAX:]
-            elif i == 2:
-                target_3 = np.vstack(
-                    (target_3, np.array([target.coord]) * MM_2_M))[-COORD_MAX:]
-                target_3_vel = np.append(target_3_vel,
-                                         target.speed * CM_2_M)[-SPEED_MAX:]
+    for tgs in app_state["gen"]:
+        targets.append((tgs, datetime.now()))
+        tg1 = [t.targets[0].coord_si for t, _ in targets if len(t.targets) > 0]
+        tg1_v = [
+            t.targets[0].speed_si for t, _ in targets if len(t.targets) > 0
+        ]
+        tg1_time = [dt for t, dt in targets if len(t.targets) > 0]
+        tg2 = [t.targets[1].coord_si for t, _ in targets if len(t.targets) > 1]
+        tg2_v = [
+            t.targets[1].speed_si for t, _ in targets if len(t.targets) > 1
+        ]
+        tg2_time = [dt for t, dt in targets if len(t.targets) > 1]
+        tg3 = [t.targets[2].coord_si for t, _ in targets if len(t.targets) > 2]
+        tg3_v = [
+            t.targets[2].speed_si for t, _ in targets if len(t.targets) > 2
+        ]
+        tg3_time = [dt for t, dt in targets if len(t.targets) > 2]
         data = {
             "data": [
-                Scatter(x=target_1[:, 0],
-                        y=target_1[:, 1],
+                Scatter(x=list(map(lambda x: x[0], tg1)),
+                        y=list(map(lambda x: x[1], tg1)),
                         mode="markers",
                         name="Target 1"),
-                Scatter(x=target_2[:, 0],
-                        y=target_2[:, 1],
+                Scatter(x=list(map(lambda x: x[0], tg2)),
+                        y=list(map(lambda x: x[1], tg2)),
                         mode="markers",
                         name="Target 2"),
-                Scatter(x=target_3[:, 0],
-                        y=target_3[:, 1],
+                Scatter(x=list(map(lambda x: x[0], tg3)),
+                        y=list(map(lambda x: x[1], tg3)),
                         mode="markers",
                         name="Target 3"),
             ],
         }
         data_vel = {
             "data": [
-                Scatter(x=np.arange(len(target_1_vel)),
-                        y=target_1_vel,
-                        mode="lines",
-                        name="Target 1"),
-                Scatter(x=np.arange(len(target_2_vel)),
-                        y=target_2_vel,
-                        mode="lines",
-                        name="Target 2"),
-                Scatter(x=np.arange(len(target_3_vel)),
-                        y=target_3_vel,
-                        mode="lines",
-                        name="Target 3"),
+                Scatter(x=tg1_time, y=tg1_v, mode="lines", name="Target 1"),
+                Scatter(x=tg2_time, y=tg2_v, mode="lines", name="Target 2"),
+                Scatter(x=tg3_time, y=tg3_v, mode="lines", name="Target 3"),
             ],
         }
 
         fig = go.Figure(data)
+        print(fig)
         fig.update_layout(showlegend=True)
         fig.update_xaxes(range=[-3, 3])
         fig.update_yaxes(range=[0, 3])
@@ -201,7 +197,7 @@ def main(port: str, baudrate: int = 256000):
         fig_vel.update_layout(showlegend=True)
         fig_vel.update_xaxes(title_text="Sample number")
         fig_vel.update_yaxes(title_text="Speed (m/s)")
-        fig_vel.update_yaxes(range=[-0.5, 0.5])
+        fig_vel.update_yaxes(range=[-1, 1])
 
         target_window.plotly_chart(fig)
         speed_window.plotly_chart(fig_vel)
