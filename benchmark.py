@@ -685,7 +685,10 @@ def main(
         width_upper_threshold = frame.shape[1] * 0.7
         height_lower_threshold = frame.shape[0] * 0.1
         overlay = frame.copy()
-        fgmask = subtractor.apply(frame)
+        GAUSSIAN_KERNEL_SIZE = 9
+        gaussian = cv2.GaussianBlur(
+            frame, (GAUSSIAN_KERNEL_SIZE, GAUSSIAN_KERNEL_SIZE), 0)
+        fgmask = subtractor.apply(gaussian)
         MORPH_KERNEL_SIZE = 11
         fgmask = cv2.morphologyEx(
             fgmask, cv2.MORPH_DILATE,
