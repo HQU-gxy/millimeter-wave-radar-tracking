@@ -110,7 +110,7 @@ def test_unmarshal():
     assert len(targets.targets) == 1
     assert targets.targets[0].coord == (-782, 1713)
     assert targets.targets[0].speed == -16
-    assert targets.targets[0]._resolution == 320
+    assert targets.targets[0].resolution == 320
     print(targets)
 
 
@@ -136,6 +136,16 @@ def resource(_params: Params) -> AppState:
     logger.info(f"Saving data to {file_name}")
     writer = jsonlines.open(file_name, mode="w", flush=True)
 
+    def target_filter(targets: Targets)->Targets:
+        def good_target(t: Target)->bool:
+            x, y = t.coord
+            if -3000 < x < 3000 and 0 < y < 9000:
+                return True
+            return False
+        return targets.model_copy(update={
+            "targets": [t for t in targets.targets if good_target(t)]
+        })
+
     def gen():
         while True:
             data = ser.read_until(bytes([0x55, 0xcc]))
@@ -145,6 +155,8 @@ def resource(_params: Params) -> AppState:
                 logger.exception(e)
                 continue
             if targets is not None:
+                logger.info(targets)
+                targets = target_filter(targets)
                 writer.write(targets.model_dump())
                 yield targets
 
@@ -268,7 +280,7 @@ def main(port: str, baudrate: int = 256000):
         fig = go.Figure(data)
         fig.update_layout(showlegend=True)
         fig.update_xaxes(range=[-3, 3])
-        fig.update_yaxes(range=[0, 8])
+        fig.update_yaxes(range=[0, 9])
         fig.update_xaxes(title_text="X (m)")
         fig.update_yaxes(title_text="Y (m)")
 
