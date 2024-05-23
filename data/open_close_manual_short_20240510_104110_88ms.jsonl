@@ -1,0 +1,586 @@
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": [{"coord": [-916, 629], "speed": 8}]}
+{"targets": [{"coord": [-871, 593], "speed": 16}]}
+{"targets": [{"coord": [-855, 574], "speed": 16}]}
+{"targets": [{"coord": [-862, 589], "speed": 16}]}
+{"targets": [{"coord": [-866, 604], "speed": 16}]}
+{"targets": [{"coord": [-874, 619], "speed": 16}]}
+{"targets": [{"coord": [-884, 636], "speed": 16}]}
+{"targets": [{"coord": [-898, 648], "speed": 8}]}
+{"targets": [{"coord": [-909, 659], "speed": 8}]}
+{"targets": [{"coord": [-913, 676], "speed": 8}]}
+{"targets": [{"coord": [-915, 695], "speed": 8}]}
+{"targets": [{"coord": [-917, 712], "speed": 8}]}
+{"targets": [{"coord": [-917, 726], "speed": 8}]}
+{"targets": [{"coord": [-902, 715], "speed": 8}]}
+{"targets": [{"coord": [-850, 672], "speed": 8}]}
+{"targets": [{"coord": [-750, 587], "speed": 8}]}
+{"targets": [{"coord": [-658, 510], "speed": 8}]}
+{"targets": [{"coord": [-580, 447], "speed": -8}]}
+{"targets": [{"coord": [-509, 392], "speed": 0}]}
+{"targets": [{"coord": [-453, 349], "speed": 0}]}
+{"targets": [{"coord": [-403, 311], "speed": 0}]}
+{"targets": [{"coord": [-364, 281], "speed": 0}]}
+{"targets": [{"coord": [-327, 252], "speed": 0}]}
+{"targets": [{"coord": [-293, 225], "speed": 0}]}
+{"targets": [{"coord": [-272, 212], "speed": 0}]}
+{"targets": [{"coord": [-266, 213], "speed": 0}]}
+{"targets": [{"coord": [-280, 229], "speed": 0}]}
+{"targets": [{"coord": [-298, 252], "speed": 0}]}
+{"targets": [{"coord": [-325, 285], "speed": 0}]}
+{"targets": [{"coord": [-421, 379], "speed": 0}]}
+{"targets": [{"coord": [-613, 563], "speed": 0}]}
+{"targets": [{"coord": [-789, 729], "speed": 0}]}
+{"targets": [{"coord": [-933, 862], "speed": 0}]}
+{"targets": [{"coord": [-843, 771], "speed": 0}]}
+{"targets": [{"coord": [-749, 679], "speed": 0}]}
+{"targets": [{"coord": [-677, 613], "speed": 0}]}
+{"targets": [{"coord": [-629, 570], "speed": 0}]}
+{"targets": [{"coord": [-588, 525], "speed": 0}]}
+{"targets": [{"coord": [-561, 493], "speed": 0}]}
+{"targets": [{"coord": [-525, 451], "speed": 0}]}
+{"targets": [{"coord": [-506, 428], "speed": 0}]}
+{"targets": [{"coord": [-493, 406], "speed": 0}]}
+{"targets": [{"coord": [-486, 397], "speed": -8}]}
+{"targets": [{"coord": [-476, 385], "speed": -8}]}
+{"targets": [{"coord": [-464, 370], "speed": -8}]}
+{"targets": [{"coord": [-447, 350], "speed": -8}]}
+{"targets": [{"coord": [-428, 327], "speed": -8}]}
+{"targets": [{"coord": [-416, 312], "speed": -16}]}
+{"targets": [{"coord": [-476, 352], "speed": -16}]}
+{"targets": [{"coord": [-545, 402], "speed": -16}]}
+{"targets": [{"coord": [-593, 456], "speed": -16}]}
+{"targets": [{"coord": [-607, 469], "speed": -16}]}
+{"targets": [{"coord": [-618, 481], "speed": -16}]}
+{"targets": [{"coord": [-625, 488], "speed": -16}]}
+{"targets": [{"coord": [-628, 493], "speed": -16}]}
+{"targets": [{"coord": [-634, 498], "speed": -16}]}
+{"targets": [{"coord": [-639, 502], "speed": -16}]}
+{"targets": [{"coord": [-645, 511], "speed": -16}]}
+{"targets": [{"coord": [-650, 520], "speed": -16}]}
+{"targets": [{"coord": [-657, 531], "speed": -16}]}
+{"targets": [{"coord": [-663, 540], "speed": -16}]}
+{"targets": [{"coord": [-671, 545], "speed": -16}]}
+{"targets": [{"coord": [-676, 548], "speed": -16}]}
+{"targets": [{"coord": [-680, 551], "speed": -16}]}
+{"targets": [{"coord": [-684, 551], "speed": -16}]}
+{"targets": [{"coord": [-688, 552], "speed": -16}]}
+{"targets": [{"coord": [-690, 554], "speed": -8}]}
+{"targets": [{"coord": [-692, 556], "speed": -8}]}
+{"targets": [{"coord": [-696, 556], "speed": -8}]}
+{"targets": [{"coord": [-697, 557], "speed": -8}]}
+{"targets": [{"coord": [-698, 558], "speed": -8}]}
+{"targets": [{"coord": [-699, 558], "speed": -8}]}
+{"targets": [{"coord": [-700, 558], "speed": -8}]}
+{"targets": [{"coord": [-700, 557], "speed": -8}]}
+{"targets": [{"coord": [-700, 557], "speed": -8}]}
+{"targets": [{"coord": [-699, 556], "speed": -8}]}
+{"targets": [{"coord": [-699, 554], "speed": -8}]}
+{"targets": [{"coord": [-698, 553], "speed": -8}]}
+{"targets": [{"coord": [-697, 553], "speed": -8}]}
+{"targets": [{"coord": [-696, 551], "speed": -8}]}
+{"targets": [{"coord": [-695, 549], "speed": -8}]}
+{"targets": [{"coord": [-693, 547], "speed": -8}]}
+{"targets": [{"coord": [-691, 546], "speed": -8}]}
+{"targets": [{"coord": [-690, 545], "speed": -8}]}
+{"targets": [{"coord": [-688, 544], "speed": -8}]}
+{"targets": [{"coord": [-687, 542], "speed": -8}]}
+{"targets": [{"coord": [-686, 539], "speed": 0}]}
+{"targets": [{"coord": [-683, 537], "speed": -8}]}
+{"targets": [{"coord": [-678, 536], "speed": -8}]}
+{"targets": [{"coord": [-676, 536], "speed": -8}]}
+{"targets": [{"coord": [-673, 535], "speed": -8}]}
+{"targets": [{"coord": [-670, 534], "speed": -8}]}
+{"targets": [{"coord": [-670, 531], "speed": -8}]}
+{"targets": [{"coord": [-669, 527], "speed": -8}]}
+{"targets": [{"coord": [-667, 524], "speed": -8}]}
+{"targets": [{"coord": [-664, 524], "speed": 0}]}
+{"targets": [{"coord": [-660, 523], "speed": 0}]}
+{"targets": [{"coord": [-656, 523], "speed": 0}]}
+{"targets": [{"coord": [-653, 523], "speed": 0}]}
+{"targets": [{"coord": [-651, 523], "speed": 0}]}
+{"targets": [{"coord": [-648, 523], "speed": 0}]}
+{"targets": [{"coord": [-643, 522], "speed": 0}]}
+{"targets": [{"coord": [-640, 521], "speed": 0}]}
+{"targets": [{"coord": [-637, 519], "speed": 0}]}
+{"targets": [{"coord": [-635, 517], "speed": 0}]}
+{"targets": [{"coord": [-636, 513], "speed": 8}]}
+{"targets": [{"coord": [-636, 510], "speed": 8}]}
+{"targets": [{"coord": [-635, 508], "speed": 8}]}
+{"targets": [{"coord": [-634, 508], "speed": 8}]}
+{"targets": [{"coord": [-635, 507], "speed": 8}]}
+{"targets": [{"coord": [-635, 506], "speed": 8}]}
+{"targets": [{"coord": [-636, 507], "speed": 8}]}
+{"targets": [{"coord": [-636, 507], "speed": 8}]}
+{"targets": [{"coord": [-637, 507], "speed": 8}]}
+{"targets": [{"coord": [-638, 507], "speed": 8}]}
+{"targets": [{"coord": [-640, 507], "speed": 8}]}
+{"targets": [{"coord": [-640, 508], "speed": 8}]}
+{"targets": [{"coord": [-642, 509], "speed": 8}]}
+{"targets": [{"coord": [-645, 510], "speed": 8}]}
+{"targets": [{"coord": [-647, 511], "speed": 8}]}
+{"targets": [{"coord": [-650, 513], "speed": 8}]}
+{"targets": [{"coord": [-651, 515], "speed": 8}]}
+{"targets": [{"coord": [-653, 516], "speed": 8}]}
+{"targets": [{"coord": [-655, 517], "speed": 8}]}
+{"targets": [{"coord": [-658, 518], "speed": 8}]}
+{"targets": [{"coord": [-661, 519], "speed": 8}]}
+{"targets": [{"coord": [-664, 522], "speed": 8}]}
+{"targets": [{"coord": [-666, 525], "speed": 8}]}
+{"targets": [{"coord": [-670, 526], "speed": 8}]}
+{"targets": [{"coord": [-674, 528], "speed": 8}]}
+{"targets": [{"coord": [-678, 531], "speed": 8}]}
+{"targets": [{"coord": [-681, 535], "speed": 8}]}
+{"targets": [{"coord": [-684, 538], "speed": 8}]}
+{"targets": [{"coord": [-689, 540], "speed": 8}]}
+{"targets": [{"coord": [-693, 543], "speed": 8}]}
+{"targets": [{"coord": [-696, 546], "speed": 8}]}
+{"targets": [{"coord": [-700, 549], "speed": 8}]}
+{"targets": [{"coord": [-703, 551], "speed": 8}]}
+{"targets": [{"coord": [-708, 553], "speed": 8}]}
+{"targets": [{"coord": [-715, 558], "speed": 8}]}
+{"targets": [{"coord": [-720, 561], "speed": 8}]}
+{"targets": [{"coord": [-724, 568], "speed": 8}]}
+{"targets": [{"coord": [-728, 573], "speed": 8}]}
+{"targets": [{"coord": [-730, 569], "speed": 8}]}
+{"targets": [{"coord": [-733, 567], "speed": 8}]}
+{"targets": [{"coord": [-736, 570], "speed": 8}]}
+{"targets": [{"coord": [-739, 577], "speed": 8}]}
+{"targets": [{"coord": [-740, 584], "speed": 8}]}
+{"targets": [{"coord": [-742, 591], "speed": 8}]}
+{"targets": [{"coord": [-746, 594], "speed": 8}]}
+{"targets": [{"coord": [-751, 596], "speed": 8}]}
+{"targets": [{"coord": [-758, 598], "speed": 8}]}
+{"targets": [{"coord": [-763, 601], "speed": 8}]}
+{"targets": [{"coord": [-766, 605], "speed": 8}]}
+{"targets": [{"coord": [-766, 607], "speed": 8}]}
+{"targets": [{"coord": [-762, 606], "speed": 8}]}
+{"targets": [{"coord": [-758, 604], "speed": 8}]}
+{"targets": [{"coord": [-754, 599], "speed": 8}]}
+{"targets": [{"coord": [-751, 592], "speed": 8}]}
+{"targets": [{"coord": [-752, 588], "speed": 8}]}
+{"targets": [{"coord": [-759, 589], "speed": 8}]}
+{"targets": [{"coord": [-768, 595], "speed": 8}]}
+{"targets": [{"coord": [-777, 602], "speed": 8}]}
+{"targets": [{"coord": [-788, 612], "speed": 8}]}
+{"targets": [{"coord": [-795, 626], "speed": 8}]}
+{"targets": [{"coord": [-800, 641], "speed": 8}]}
+{"targets": [{"coord": [-805, 656], "speed": 8}]}
+{"targets": [{"coord": [-810, 671], "speed": 8}]}
+{"targets": [{"coord": [-820, 682], "speed": 0}]}
+{"targets": [{"coord": [-824, 693], "speed": 0}]}
+{"targets": [{"coord": [-830, 708], "speed": 0}]}
+{"targets": [{"coord": [-838, 721], "speed": 0}]}
+{"targets": [{"coord": [-851, 727], "speed": 0}]}
+{"targets": [{"coord": [-869, 727], "speed": 0}]}
+{"targets": [{"coord": [-922, 726], "speed": 0}]}
+{"targets": [{"coord": [-965, 729], "speed": 8}]}
+{"targets": [{"coord": [-993, 743], "speed": 8}]}
+{"targets": [{"coord": [-1008, 765], "speed": 8}]}
+{"targets": [{"coord": [-1011, 775], "speed": 8}]}
+{"targets": [{"coord": [-1012, 788], "speed": 8}]}
+{"targets": [{"coord": [-1010, 803], "speed": 8}]}
+{"targets": [{"coord": [-1007, 816], "speed": 8}]}
+{"targets": [{"coord": [-985, 799], "speed": 8}]}
+{"targets": [{"coord": [-961, 777], "speed": 8}]}
+{"targets": [{"coord": [-893, 715], "speed": 8}]}
+{"targets": [{"coord": [-834, 662], "speed": 8}]}
+{"targets": [{"coord": [-746, 588], "speed": 8}]}
+{"targets": [{"coord": [-716, 565], "speed": 8}]}
+{"targets": [{"coord": [-706, 558], "speed": 8}]}
+{"targets": [{"coord": [-694, 548], "speed": 0}]}
+{"targets": [{"coord": [-679, 536], "speed": 0}]}
+{"targets": [{"coord": [-635, 500], "speed": 0}]}
+{"targets": [{"coord": [-591, 464], "speed": 0}]}
+{"targets": [{"coord": [-549, 431], "speed": 0}]}
+{"targets": [{"coord": [-514, 404], "speed": -8}]}
+{"targets": [{"coord": [-482, 379], "speed": 0}]}
+{"targets": [{"coord": [-472, 371], "speed": 0}]}
+{"targets": [{"coord": [-463, 365], "speed": 0}]}
+{"targets": [{"coord": [-459, 361], "speed": 0}]}
+{"targets": [{"coord": [-457, 361], "speed": 0}]}
+{"targets": [{"coord": [-459, 365], "speed": 0}]}
+{"targets": [{"coord": [-463, 368], "speed": -8}]}
+{"targets": [{"coord": [-466, 370], "speed": -8}]}
+{"targets": [{"coord": [-466, 370], "speed": -8}]}
+{"targets": [{"coord": [-462, 364], "speed": -16}]}
+{"targets": [{"coord": [-456, 356], "speed": -16}]}
+{"targets": [{"coord": [-450, 349], "speed": -16}]}
+{"targets": [{"coord": [-441, 341], "speed": -24}]}
+{"targets": [{"coord": [-432, 334], "speed": -24}]}
+{"targets": [{"coord": [-429, 330], "speed": -24}]}
+{"targets": [{"coord": [-434, 334], "speed": -24}]}
+{"targets": [{"coord": [-447, 343], "speed": -24}]}
+{"targets": [{"coord": [-483, 378], "speed": -24}]}
+{"targets": [{"coord": [-525, 414], "speed": -24}]}
+{"targets": [{"coord": [-600, 484], "speed": -24}]}
+{"targets": [{"coord": [-660, 526], "speed": -24}]}
+{"targets": [{"coord": [-696, 552], "speed": -24}]}
+{"targets": [{"coord": [-719, 564], "speed": -24}]}
+{"targets": [{"coord": [-724, 567], "speed": -24}]}
+{"targets": [{"coord": [-725, 568], "speed": -24}]}
+{"targets": [{"coord": [-725, 568], "speed": -24}]}
+{"targets": [{"coord": [-725, 568], "speed": -24}]}
+{"targets": [{"coord": [-724, 567], "speed": -16}]}
+{"targets": [{"coord": [-723, 566], "speed": -16}]}
+{"targets": [{"coord": [-721, 564], "speed": -16}]}
+{"targets": [{"coord": [-719, 562], "speed": -16}]}
+{"targets": [{"coord": [-717, 560], "speed": -16}]}
+{"targets": [{"coord": [-714, 558], "speed": -16}]}
+{"targets": [{"coord": [-711, 555], "speed": -16}]}
+{"targets": [{"coord": [-708, 553], "speed": -8}]}
+{"targets": [{"coord": [-704, 551], "speed": -8}]}
+{"targets": [{"coord": [-701, 547], "speed": -8}]}
+{"targets": [{"coord": [-698, 544], "speed": -8}]}
+{"targets": [{"coord": [-694, 543], "speed": -8}]}
+{"targets": [{"coord": [-690, 542], "speed": 0}]}
+{"targets": [{"coord": [-687, 540], "speed": 0}]}
+{"targets": [{"coord": [-684, 537], "speed": 0}]}
+{"targets": [{"coord": [-682, 535], "speed": 0}]}
+{"targets": [{"coord": [-679, 534], "speed": 0}]}
+{"targets": [{"coord": [-676, 534], "speed": 8}]}
+{"targets": [{"coord": [-673, 533], "speed": 8}]}
+{"targets": [{"coord": [-672, 530], "speed": 8}]}
+{"targets": [{"coord": [-671, 527], "speed": 8}]}
+{"targets": [{"coord": [-670, 527], "speed": 8}]}
+{"targets": [{"coord": [-668, 525], "speed": 8}]}
+{"targets": [{"coord": [-668, 524], "speed": 8}]}
+{"targets": [{"coord": [-667, 523], "speed": 8}]}
+{"targets": [{"coord": [-667, 523], "speed": 16}]}
+{"targets": [{"coord": [-667, 523], "speed": 16}]}
+{"targets": [{"coord": [-667, 523], "speed": 16}]}
+{"targets": [{"coord": [-669, 523], "speed": 16}]}
+{"targets": [{"coord": [-670, 524], "speed": 16}]}
+{"targets": [{"coord": [-672, 525], "speed": 16}]}
+{"targets": [{"coord": [-675, 527], "speed": 16}]}
+{"targets": [{"coord": [-677, 529], "speed": 16}]}
+{"targets": [{"coord": [-681, 531], "speed": 16}]}
+{"targets": [{"coord": [-684, 534], "speed": 16}]}
+{"targets": [{"coord": [-688, 537], "speed": 16}]}
+{"targets": [{"coord": [-692, 539], "speed": 16}]}
+{"targets": [{"coord": [-695, 543], "speed": 24}]}
+{"targets": [{"coord": [-700, 546], "speed": 24}]}
+{"targets": [{"coord": [-705, 551], "speed": 24}]}
+{"targets": [{"coord": [-711, 557], "speed": 24}]}
+{"targets": [{"coord": [-717, 564], "speed": 24}]}
+{"targets": [{"coord": [-720, 572], "speed": 16}]}
+{"targets": [{"coord": [-724, 577], "speed": 16}]}
+{"targets": [{"coord": [-731, 581], "speed": 16}]}
+{"targets": [{"coord": [-733, 584], "speed": 16}]}
+{"targets": [{"coord": [-733, 584], "speed": 16}]}
+{"targets": [{"coord": [-732, 580], "speed": 16}]}
+{"targets": [{"coord": [-733, 577], "speed": 16}]}
+{"targets": [{"coord": [-739, 580], "speed": 16}]}
+{"targets": [{"coord": [-745, 583], "speed": 16}]}
+{"targets": [{"coord": [-731, 570], "speed": 8}]}
+{"targets": [{"coord": [-712, 554], "speed": 8}]}
+{"targets": [{"coord": [-694, 537], "speed": 8}]}
+{"targets": [{"coord": [-679, 524], "speed": 8}]}
+{"targets": [{"coord": [-686, 533], "speed": 8}]}
+{"targets": [{"coord": [-697, 554], "speed": 8}]}
+{"targets": [{"coord": [-740, 624], "speed": 8}]}
+{"targets": [{"coord": [-774, 681], "speed": 8}]}
+{"targets": [{"coord": [-762, 669], "speed": 8}]}
+{"targets": [{"coord": [-745, 651], "speed": 8}]}
+{"targets": [{"coord": [-698, 602], "speed": 8}]}
+{"targets": [{"coord": [-661, 561], "speed": 0}]}
+{"targets": [{"coord": [-634, 531], "speed": 0}]}
+{"targets": [{"coord": [-621, 515], "speed": 0}]}
+{"targets": [{"coord": [-615, 509], "speed": 8}]}
+{"targets": [{"coord": [-608, 502], "speed": 8}]}
+{"targets": [{"coord": [-599, 494], "speed": 8}]}
+{"targets": [{"coord": [-590, 486], "speed": -8}]}
+{"targets": [{"coord": [-577, 476], "speed": 0}]}
+{"targets": [{"coord": [-541, 444], "speed": 0}]}
+{"targets": [{"coord": [-506, 414], "speed": 0}]}
+{"targets": [{"coord": [-475, 388], "speed": 8}]}
+{"targets": [{"coord": [-452, 365], "speed": 0}]}
+{"targets": [{"coord": [-432, 344], "speed": 0}]}
+{"targets": [{"coord": [-417, 332], "speed": 8}]}
+{"targets": [{"coord": [-413, 330], "speed": 8}]}
+{"targets": [{"coord": [-407, 326], "speed": 0}]}
+{"targets": [{"coord": [-404, 323], "speed": 0}]}
+{"targets": [{"coord": [-403, 322], "speed": 0}]}
+{"targets": [{"coord": [-407, 325], "speed": 0}]}
+{"targets": [{"coord": [-410, 327], "speed": -8}]}
+{"targets": [{"coord": [-413, 328], "speed": -8}]}
+{"targets": [{"coord": [-413, 327], "speed": -8}]}
+{"targets": [{"coord": [-409, 322], "speed": -16}]}
+{"targets": [{"coord": [-403, 314], "speed": -16}]}
+{"targets": [{"coord": [-397, 307], "speed": -16}]}
+{"targets": [{"coord": [-389, 300], "speed": -24}]}
+{"targets": [{"coord": [-383, 295], "speed": -24}]}
+{"targets": [{"coord": [-382, 292], "speed": -32}]}
+{"targets": [{"coord": [-390, 301], "speed": -32}]}
+{"targets": [{"coord": [-408, 313], "speed": -32}]}
+{"targets": [{"coord": [-455, 357], "speed": -32}]}
+{"targets": [{"coord": [-499, 389], "speed": -32}]}
+{"targets": [{"coord": [-573, 442], "speed": -32}]}
+{"targets": [{"coord": [-621, 485], "speed": -32}]}
+{"targets": [{"coord": [-642, 497], "speed": -24}]}
+{"targets": [{"coord": [-653, 509], "speed": -24}]}
+{"targets": [{"coord": [-663, 516], "speed": -24}]}
+{"targets": [{"coord": [-665, 518], "speed": -24}]}
+{"targets": [{"coord": [-667, 519], "speed": -24}]}
+{"targets": [{"coord": [-668, 520], "speed": -16}]}
+{"targets": [{"coord": [-669, 519], "speed": -16}]}
+{"targets": [{"coord": [-668, 519], "speed": -16}]}
+{"targets": [{"coord": [-668, 518], "speed": -16}]}
+{"targets": [{"coord": [-667, 518], "speed": -16}]}
+{"targets": [{"coord": [-666, 517], "speed": -16}]}
+{"targets": [{"coord": [-665, 515], "speed": -8}]}
+{"targets": [{"coord": [-663, 514], "speed": -8}]}
+{"targets": [{"coord": [-662, 512], "speed": -8}]}
+{"targets": [{"coord": [-660, 510], "speed": -8}]}
+{"targets": [{"coord": [-658, 509], "speed": -8}]}
+{"targets": [{"coord": [-655, 509], "speed": 0}]}
+{"targets": [{"coord": [-652, 510], "speed": 0}]}
+{"targets": [{"coord": [-648, 510], "speed": 0}]}
+{"targets": [{"coord": [-645, 510], "speed": 0}]}
+{"targets": [{"coord": [-642, 510], "speed": 0}]}
+{"targets": [{"coord": [-641, 511], "speed": 0}]}
+{"targets": [{"coord": [-640, 511], "speed": 0}]}
+{"targets": [{"coord": [-638, 512], "speed": 0}]}
+{"targets": [{"coord": [-637, 512], "speed": 8}]}
+{"targets": [{"coord": [-637, 509], "speed": 8}]}
+{"targets": [{"coord": [-637, 507], "speed": 8}]}
+{"targets": [{"coord": [-637, 507], "speed": 8}]}
+{"targets": [{"coord": [-637, 506], "speed": 8}]}
+{"targets": [{"coord": [-638, 505], "speed": 8}]}
+{"targets": [{"coord": [-638, 506], "speed": 8}]}
+{"targets": [{"coord": [-639, 506], "speed": 8}]}
+{"targets": [{"coord": [-640, 506], "speed": 16}]}
+{"targets": [{"coord": [-641, 507], "speed": 8}]}
+{"targets": [{"coord": [-643, 508], "speed": 16}]}
+{"targets": [{"coord": [-645, 509], "speed": 8}]}
+{"targets": [{"coord": [-648, 511], "speed": 8}]}
+{"targets": [{"coord": [-650, 513], "speed": 8}]}
+{"targets": [{"coord": [-653, 514], "speed": 8}]}
+{"targets": [{"coord": [-656, 516], "speed": 8}]}
+{"targets": [{"coord": [-659, 518], "speed": 8}]}
+{"targets": [{"coord": [-662, 521], "speed": 8}]}
+{"targets": [{"coord": [-666, 523], "speed": 8}]}
+{"targets": [{"coord": [-670, 525], "speed": 8}]}
+{"targets": [{"coord": [-674, 528], "speed": 8}]}
+{"targets": [{"coord": [-676, 532], "speed": 8}]}
+{"targets": [{"coord": [-680, 534], "speed": 16}]}
+{"targets": [{"coord": [-685, 537], "speed": 16}]}
+{"targets": [{"coord": [-689, 541], "speed": 16}]}
+{"targets": [{"coord": [-693, 544], "speed": 16}]}
+{"targets": [{"coord": [-699, 548], "speed": 16}]}
+{"targets": [{"coord": [-706, 553], "speed": 16}]}
+{"targets": [{"coord": [-709, 557], "speed": 16}]}
+{"targets": [{"coord": [-713, 559], "speed": 16}]}
+{"targets": [{"coord": [-718, 559], "speed": 16}]}
+{"targets": [{"coord": [-723, 562], "speed": 16}]}
+{"targets": [{"coord": [-726, 567], "speed": 16}]}
+{"targets": [{"coord": [-733, 570], "speed": 16}]}
+{"targets": [{"coord": [-740, 575], "speed": 16}]}
+{"targets": [{"coord": [-746, 579], "speed": 8}]}
+{"targets": [{"coord": [-747, 582], "speed": 8}]}
+{"targets": [{"coord": [-745, 581], "speed": 8}]}
+{"targets": [{"coord": [-742, 578], "speed": 8}]}
+{"targets": [{"coord": [-738, 572], "speed": 8}]}
+{"targets": [{"coord": [-738, 567], "speed": 8}]}
+{"targets": [{"coord": [-741, 566], "speed": 8}]}
+{"targets": [{"coord": [-750, 574], "speed": 8}]}
+{"targets": [{"coord": [-758, 589], "speed": 8}]}
+{"targets": [{"coord": [-766, 610], "speed": 8}]}
+{"targets": [{"coord": [-792, 682], "speed": 8}]}
+{"targets": [{"coord": [-812, 740], "speed": 8}]}
+{"targets": [{"coord": [-793, 725], "speed": 8}]}
+{"targets": [{"coord": [-770, 705], "speed": 8}]}
+{"targets": [{"coord": [-750, 686], "speed": 8}]}
+{"targets": [{"coord": [-763, 691], "speed": 8}]}
+{"targets": [{"coord": [-777, 702], "speed": 8}]}
+{"targets": [{"coord": [-811, 742], "speed": 0}]}
+{"targets": [{"coord": [-838, 780], "speed": 0}]}
+{"targets": [{"coord": [-877, 857], "speed": 0}]}
+{"targets": [{"coord": [-905, 933], "speed": 0}]}
+{"targets": [{"coord": [-921, 988], "speed": 0}]}
+{"targets": [{"coord": [-934, 1027], "speed": 0}]}
+{"targets": [{"coord": [-947, 1054], "speed": 0}]}
+{"targets": [{"coord": [-953, 1064], "speed": 0}]}
+{"targets": [{"coord": [-958, 1072], "speed": 0}]}
+{"targets": [{"coord": [-961, 1080], "speed": 0}]}
+{"targets": [{"coord": [-952, 1093], "speed": -8}]}
+{"targets": [{"coord": [-939, 1108], "speed": -8}]}
+{"targets": [{"coord": [-940, 1109], "speed": 0}]}
+{"targets": [{"coord": [-940, 1109], "speed": 0}]}
+{"targets": [{"coord": [-937, 1109], "speed": 0}]}
+{"targets": [{"coord": [-930, 1112], "speed": 0}]}
+{"targets": [{"coord": [-915, 1119], "speed": 64}]}
+{"targets": [{"coord": [-859, 1146], "speed": 64}]}
+{"targets": [{"coord": [-810, 1171], "speed": 64}]}
+{"targets": [{"coord": [-793, 1179], "speed": 64}]}
+{"targets": [{"coord": [-778, 1186], "speed": 64}]}
+{"targets": [{"coord": [-763, 1194], "speed": 64}]}
+{"targets": [{"coord": [-748, 1201], "speed": 64}]}
+{"targets": [{"coord": [-734, 1208], "speed": 64}]}
+{"targets": [{"coord": [-721, 1214], "speed": 64}]}
+{"targets": [{"coord": [-708, 1221], "speed": 64}]}
+{"targets": [{"coord": [-695, 1227], "speed": 64}]}
+{"targets": [{"coord": [-683, 1233], "speed": 64}]}
+{"targets": [{"coord": [-671, 1238], "speed": 64}]}
+{"targets": [{"coord": [-660, 1244], "speed": 64}]}
+{"targets": [{"coord": [-649, 1249], "speed": 64}]}
+{"targets": [{"coord": [-638, 1254], "speed": 64}]}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}
+{"targets": []}

@@ -168,5 +168,6 @@ cmake-*
 
 .DS_Store
 result.json
-*.jsonl
+./*.jsonl
 *.zip
+!data/*.jsonl
