@@ -1,4 +1,5 @@
 import LibSerialPort as Serial
+import Dates
 using Logging: @info, @debug, @warn, @error
 using Base: @kwdef
 using DataStructures: Deque
@@ -265,6 +266,7 @@ end
 
 # https://stackoverflow.com/questions/64623810/julia-generics-function-type-parameter
 const QUEUE_SIZE = 16
+const MIN_CALC_SIZE = 12
 function roll(
     window::Deque{T},
     item::T,
@@ -276,24 +278,44 @@ function roll(
     nothing
 end
 
+struct MaybeTarget
+    timestamp::Dates.DateTime
+    target::Union{Target.t,Nothing}
+end
+
 function run_serial()
     # https://en.wikibooks.org/wiki/Introducing_Julia/Controlling_the_flow#Do_block
-    window = Deque{Target.t}(QUEUE_SIZE)
+    window = Deque{MaybeTarget}(QUEUE_SIZE)
     Serial.open("/dev/cu.usbserial-0001", 256_000) do port
         Serial.flush(port)
         Serial.set_read_timeout(port, 1)
         Serial.clear_write_timeout(port)
 
+        function maybeTargets2Targets(maybeTargets::AbstractArray{MaybeTarget})::Vector{Target.t}
+            targets = Target.t[]
+            for maybeTarget in maybeTargets
+                if !isnothing(maybeTarget.target)
+                    push!(targets, maybeTarget.target)
+                end
+            end
+            return targets
+        end
+
+        # TODO: target filter
         function calc(data::Targets.t)::Union{Nothing,Real}
             if isempty(data.targets)
+                target = MaybeTarget(Dates.now(), nothing)
+                roll(window, target, QUEUE_SIZE)
+            else
+                fstTarget = first(data.targets)
+                target = MaybeTarget(Dates.now(), fstTarget)
+                roll(window, target, QUEUE_SIZE)
+            end
+            tgs = collect(window) |> maybeTargets2Targets
+            if length(tgs) < MIN_CALC_SIZE
                 return nothing
             end
-            fstTarget = first(data.targets)
-            roll(window, fstTarget, QUEUE_SIZE)
-            if length(window) != QUEUE_SIZE
-                return nothing
-            end
-            return TargetFIS.targetsWindow2Fuzzy(collect(window))
+            return TargetFIS.targetsWindow2Fuzzy(tgs)
         end
 
         while true
@@ -306,6 +328,8 @@ function run_serial()
             result = calc(targets)
             if !isnothing(result)
                 @info "FIS result: $result"
+            else
+                @warn "nop"
             end
         end
     end
