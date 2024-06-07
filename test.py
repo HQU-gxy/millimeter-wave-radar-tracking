@@ -136,15 +136,16 @@ def resource(_params: Params) -> AppState:
     logger.info(f"Saving data to {file_name}")
     writer = jsonlines.open(file_name, mode="w", flush=True)
 
-    def target_filter(targets: Targets)->Targets:
-        def good_target(t: Target)->bool:
+    def target_filter(targets: Targets) -> Targets:
+
+        def good_target(t: Target) -> bool:
             x, y = t.coord
             if -3000 < x < 3000 and 0 < y < 9000:
                 return True
             return False
-        return targets.model_copy(update={
-            "targets": [t for t in targets.targets if good_target(t)]
-        })
+
+        return targets.model_copy(
+            update={"targets": [t for t in targets.targets if good_target(t)]})
 
     def gen():
         while True:
@@ -212,7 +213,7 @@ def generate_colors(time_list: list[datetime],
         raise ValueError("Invalid interpolation method")
 
 
-def main(port: str, baudrate: int = 256000):
+def main(port: str, baudrate: int = 256_000):
     params = Params(port=port, baudrate=baudrate)
     app_state = resource(params)
     st.title("Radar Target Tracking")
