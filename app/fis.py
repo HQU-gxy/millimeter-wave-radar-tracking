@@ -1,72 +1,117 @@
-from telnetlib import XASCII
-from fuzzylogic.classes import Domain, Rule
-from fuzzylogic.functions import gauss, bounded_sigmoid, number
+import numpy as np
+import skfuzzy as fuzz
+from skfuzzy import control as ctrl
 from pydantic import BaseModel
+from typing import Callable, Union
 
+# https://github.com/scikit-fuzzy/scikit-fuzzy/blob/master/docs/examples/plot_tipping_problem_newapi.py
+# Define the universe of discourse for each variable
+xAvg = ctrl.Antecedent(np.arange(-1000, 1001, 1), "xAvg")
+yAvg = ctrl.Antecedent(np.arange(-10, 2001, 1), "yAvg")
+speedMean = ctrl.Antecedent(np.arange(0, 13, 1), "speedMean")
+speedStd = ctrl.Antecedent(np.arange(0, 9, 1), "speedStd")
+output = ctrl.Consequent(np.arange(-1, 2, 1), "output")
+output.defuzzify_method = "centroid"
 
-def zmf(h: number, l: number):
-    """
-    Z-shaped membership function
-    """
-    return bounded_sigmoid(l, h, inverse=True)
+# Define membership functions for xAvg
+xAvg["XL"] = fuzz.gaussmf(xAvg.universe, -1000.0, 200.0)
+xAvg["XO"] = fuzz.gaussmf(xAvg.universe, -220.0, 180.0)
+xAvg["XR"] = fuzz.gaussmf(xAvg.universe, 500.0, 230.0)
 
+# Define membership functions for yAvg
+yAvg["YO"] = fuzz.gaussmf(yAvg.universe, 0.0, 750.0)
+yAvg["YN"] = fuzz.gaussmf(yAvg.universe, 2000.0, 250.0)
 
-def smf(h: number, l: number):
-    """
-    S-shaped membership function
-    """
-    return bounded_sigmoid(h, l, inverse=False)
+# Define membership functions for speedMean
+speedMean["SMO"] = fuzz.zmf(speedMean.universe, 6, 12)
+speedMean["SMH"] = fuzz.gaussmf(speedMean.universe, 15.0, 2.0)
 
+# Define membership functions for speedStd
+speedStd["SSO"] = fuzz.zmf(speedStd.universe, 4, 8)
+speedStd["SSH"] = fuzz.gaussmf(speedStd.universe, 8.0, 1.2)
 
-x_avg = Domain("x_avg", -1_000, 1_000, res=0.1)
-x_avg.L = gauss(-1000, 200)
-x_avg.O = gauss(-220, 180)
-x_avg.R = gauss(500, 230)
+# Define membership functions for output
+output["OF"] = fuzz.gaussmf(output.universe, -1.0, 0.6)
+output["OT"] = fuzz.gaussmf(output.universe, 1.0, 0.6)
 
-y_avg = Domain("y_avg", -10, 2_000, res=0.1)
-y_avg.O = gauss(0, 750)
-y_avg.N = gauss(2000, 250)
+# Define fuzzy rules
+rule1 = ctrl.Rule(
+    xAvg["XO"] & yAvg["YO"] & speedMean["SMO"] & speedStd["SSO"], output["OT"]
+)
+rule2 = ctrl.Rule(xAvg["XL"], output["OF"])
+rule3 = ctrl.Rule(xAvg["XR"], output["OF"])
+rule4 = ctrl.Rule(yAvg["YN"], output["OF"])
+rule5 = ctrl.Rule(speedMean["SMH"], output["OF"])
+rule6 = ctrl.Rule(speedStd["SSH"], output["OF"])
+rule7 = ctrl.Rule(xAvg["XO"] & yAvg["YN"], output["OF"])
+rule8 = ctrl.Rule(xAvg["XL"] & speedMean["SMO"], output["OF"])
+rule9 = ctrl.Rule(xAvg["XR"] & speedMean["SMO"], output["OF"])
+rule10 = ctrl.Rule(yAvg["YO"] & speedMean["SMH"], output["OF"])
+rule11 = ctrl.Rule(yAvg["YO"] & speedStd["SSH"], output["OF"])
 
-speed_mean = Domain("speed_mean", 0, 12, res=0.1)
-speed_mean.O = zmf(6, 12)
-speed_mean.H = gauss(15, 2)
-
-speed_std = Domain("speed_std", 0, 8, res=0.1)
-speed_std.O = zmf(4, 8)
-speed_std.H = gauss(8, 1.2)
-
-output = Domain("output", -1, 1, res=0.1)
-output.F = gauss(-1, 0.6)
-output.T = gauss(1, 0.6)
-
-_rules = [
-    Rule({(x_avg.O, y_avg.O, speed_mean.O, speed_std.O): output.T}),
-    Rule({(x_avg.L): output.F}),
-    Rule({(x_avg.R): output.F}),
-    Rule({(y_avg.N): output.F}),
-    Rule({(speed_mean.H): output.F}),
-    Rule({(speed_std.H): output.F}),
-    Rule({(x_avg.O, y_avg.N): output.F}),
-    Rule({(x_avg.L, speed_mean.O): output.F}),
-    Rule({(x_avg.R, speed_mean.O): output.F}),
-    Rule({(y_avg.O, speed_mean.H): output.F}),
-    Rule({(y_avg.O, speed_std.H): output.F}),
-]
-rules = sum(_rules)
-
-
-__all__ = ["FisInput", "evaluate_fis"]
+# Create control system and simulation
+_fis_ctrl = ctrl.ControlSystem(
+    [rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9, rule10, rule11]
+)
+_fis = ctrl.ControlSystemSimulation(_fis_ctrl)
 
 
 class FisInput(BaseModel, frozen=True):
-    x_avg: float
-    y_avg: float
-    speed_mean: float
-    speed_std: float
+    xAvg: float
+    yAvg: float
+    speedMean: float
+    speedStd: float
 
 
-def evaluate_fis(fis_input: FisInput) -> float:
-    assert isinstance(rules, Rule)
-    r = rules(fis_input.model_dump())  # type: ignore
-    assert isinstance(r, float)
-    return r
+Num = Union[int, float]
+
+
+def centroid(
+    domain: range, mf: Callable[[Num], float], segmentation: int = 100
+) -> float:
+    x = [
+        domain.start + i * (domain.stop - domain.start) / (segmentation - 1)
+        for i in range(segmentation)
+    ]
+    dx = (domain.stop - domain.start) / (segmentation - 1)
+    y = [mf(xi) for xi in x]
+
+    def trapz(dx: Num, y: list[Num]) -> Num:
+        return (2 * sum(y) - y[0] - y[-1]) * dx / 2
+
+    integral_f = trapz(dx, y)
+    integral_xf = trapz(dx, [xi * yi for xi, yi in zip(x, y)])
+    centroid_x = integral_xf / integral_f
+    return centroid_x
+
+
+def mapRange(x: Num, inMin: Num, inMax: Num, outMin: Num, outMax: Num) -> float:
+    return (x - inMin) * (outMax - outMin) / (inMax - inMin) + outMin
+
+
+def infer_raw(input: FisInput) -> float:
+    _fis.input["xAvg"] = input.xAvg
+    _fis.input["yAvg"] = input.yAvg
+    _fis.input["speedMean"] = input.speedMean
+    _fis.input["speedStd"] = input.speedStd
+    _fis.compute()
+    return _fis.output["output"]
+
+
+def gauss_fn(x: float, mean: float, sigma: float):
+    return np.exp(-((x - mean) ** 2.0) / (2 * sigma**2.0))
+
+
+MAX_VAL = centroid(
+    range(-1, 1),
+    lambda x: gauss_fn(x, 1, 0.6),
+)
+MIN_VAL = centroid(
+    range(-1, 1),
+    lambda x: gauss_fn(x, -1, 0.6),
+)
+
+
+def infer(input: FisInput) -> float:
+    raw = infer_raw(input)
+    return mapRange(raw, MIN_VAL, MAX_VAL, -1, 1)
