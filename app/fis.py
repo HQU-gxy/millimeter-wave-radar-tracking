@@ -35,24 +35,22 @@ output["OF"] = fuzz.gaussmf(output.universe, -1.0, 0.6)
 output["OT"] = fuzz.gaussmf(output.universe, 1.0, 0.6)
 
 # Define fuzzy rules
-rule1 = ctrl.Rule(
-    xAvg["XO"] & yAvg["YO"] & speedMean["SMO"] & speedStd["SSO"], output["OT"]
-)
-rule2 = ctrl.Rule(xAvg["XL"], output["OF"])
-rule3 = ctrl.Rule(xAvg["XR"], output["OF"])
-rule4 = ctrl.Rule(yAvg["YN"], output["OF"])
-rule5 = ctrl.Rule(speedMean["SMH"], output["OF"])
-rule6 = ctrl.Rule(speedStd["SSH"], output["OF"])
-rule7 = ctrl.Rule(xAvg["XO"] & yAvg["YN"], output["OF"])
-rule8 = ctrl.Rule(xAvg["XL"] & speedMean["SMO"], output["OF"])
-rule9 = ctrl.Rule(xAvg["XR"] & speedMean["SMO"], output["OF"])
-rule10 = ctrl.Rule(yAvg["YO"] & speedMean["SMH"], output["OF"])
-rule11 = ctrl.Rule(yAvg["YO"] & speedStd["SSH"], output["OF"])
+rules = [
+    ctrl.Rule(xAvg["XO"] & yAvg["YO"] & speedMean["SMO"] & speedStd["SSO"],
+              output["OT"]),
+    ctrl.Rule(xAvg["XL"], output["OF"]),
+    ctrl.Rule(xAvg["XR"], output["OF"]),
+    ctrl.Rule(yAvg["YN"], output["OF"]),
+    ctrl.Rule(speedMean["SMH"], output["OF"]),
+    ctrl.Rule(speedStd["SSH"], output["OF"]),
+    ctrl.Rule(xAvg["XO"] & yAvg["YN"], output["OF"]),
+    ctrl.Rule(xAvg["XL"] & speedMean["SMO"], output["OF"]),
+    ctrl.Rule(xAvg["XR"] & speedMean["SMO"], output["OF"]),
+    ctrl.Rule(yAvg["YO"] & speedMean["SMH"], output["OF"]),
+    ctrl.Rule(yAvg["YO"] & speedStd["SSH"], output["OF"]),
+]
 
-# Create control system and simulation
-_fis_ctrl = ctrl.ControlSystem(
-    [rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9, rule10, rule11]
-)
+_fis_ctrl = ctrl.ControlSystem(rules)
 _fis = ctrl.ControlSystemSimulation(_fis_ctrl)
 
 
@@ -66,9 +64,9 @@ class FisInput(BaseModel, frozen=True):
 Num = Union[int, float]
 
 
-def centroid(
-    domain: range, mf: Callable[[Num], float], segmentation: int = 100
-) -> float:
+def centroid(domain: range,
+             mf: Callable[[Num], float],
+             segmentation: int = 100) -> float:
     x = [
         domain.start + i * (domain.stop - domain.start) / (segmentation - 1)
         for i in range(segmentation)
@@ -98,8 +96,11 @@ def infer_raw(input: FisInput) -> float:
     return _fis.output["output"]
 
 
-def gauss_fn(x: float, mean: float, sigma: float):
-    return np.exp(-((x - mean) ** 2.0) / (2 * sigma**2.0))
+def gauss_fn(x: float, mean: float, sigma: float) -> float:
+    """
+    Gaussian function, nothing special.
+    """
+    return float(np.exp(-((x - mean)**2.0) / (2 * sigma**2.0)))
 
 
 MAX_VAL = centroid(

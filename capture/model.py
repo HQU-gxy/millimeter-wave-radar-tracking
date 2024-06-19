@@ -12,6 +12,8 @@ from typing import (
 
 from pydantic import BaseModel, Field, PrivateAttr
 
+END_MAGIC: Final = bytes([0x55, 0xCC])
+
 
 class Target(BaseModel, frozen=True):
     """
@@ -85,7 +87,7 @@ class Targets(BaseModel, frozen=True):
         # we have three targets
         # if the data is all zeros, it means the target is not set
         for _ in range(3):
-            target = Target.unmarshal(data[offset : offset + 8])
+            target = Target.unmarshal(data[offset:offset + 8])
             if target is not None:
                 targets.append(target)
             offset += 8

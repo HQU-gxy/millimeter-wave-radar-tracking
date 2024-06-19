@@ -28,7 +28,7 @@ from plotly.graph_objects import Scatter
 from pydantic import BaseModel, Field, PrivateAttr
 from serial import Serial
 
-from .model import Target, Targets
+from .model import END_MAGIC, Target, Targets
 
 NDArray = np.ndarray
 
@@ -109,7 +109,7 @@ def resource(_params: Params) -> AppState:
 
     def gen():
         while True:
-            data = ser.read_until(bytes([0x55, 0xCC]))
+            data = ser.read_until(END_MAGIC)
             try:
                 targets = Targets.unmarshal(data)
             except ValueError as e:
