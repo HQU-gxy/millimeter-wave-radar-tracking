@@ -104,62 +104,66 @@ def infer_block(ser: Serial,
     def all_available(targets: Iterable[MaybeTarget]) -> bool:
         return all(t.target is not None for t in targets)
 
-    def send_silent(result: ArbiterResult):
+    def send_silent(tx: MemoryObjectSendStream[ArbiterResult],
+                    result: ArbiterResult):
         try:
             tx.send_nowait(result)
         except anyio.WouldBlock:
             logger.warning("result queue is full, dropping the result {}",
                            result)
 
-    for targets in gen_target(ser):
-        # NOTE: I'm ignoring the other targets for now
-        try:
-            t = targets.targets[0]
-        except IndexError:
-            t = None
-        if len(targets.targets) > 1:
-            logger.warning("multiple targets {}", targets)
-        elif len(targets.targets) == 1:
-            logger.info("target {}", t)
-        else:
-            logger.warning("no target")
-        # TODO: filter by range FIS
-        t_ = MaybeTarget(target=t, timestamp=datetime.now())
-        queue.append(t_)
-        # jsonl
-        if writer is not None:
-            writer.write(t_.model_dump_json() + "\n")
-        # note that deque in python will automatically remove the oldest element
-        # which is quite a strange behavior compared to other languages
-        # but it avoids the need to pop the oldest element manually
-        if len(queue) < MAX_SIZE:
-            send_silent(ArbiterResult.INDECISIVE)
-            continue
-        if all_none(queue):
-            send_silent(ArbiterResult.IDLE)
-        elif all_available(queue):
-            x_avg = float(
-                np.mean(
-                    [t.target.coord[0] for t in queue if t.target is not None]))
-            y_avg = float(
-                np.mean(
-                    [t.target.coord[1] for t in queue if t.target is not None]))
-            speed_avg_abs = np.abs(
-                [t.target.speed for t in queue if t.target is not None])
-            speed_avg = float(np.mean(speed_avg_abs))
-            speed_std = float(np.std(speed_avg_abs))
-            input = FisInput(xAvg=x_avg,
-                             yAvg=y_avg,
-                             speedMean=speed_avg,
-                             speedStd=speed_std)
-            result = infer(input)
-            logger.info(f"Input={input}; Result={result}")
-            if result > 0:
-                send_silent(ArbiterResult.STILL)
+    with tx:
+        for targets in gen_target(ser):
+            # NOTE: I'm ignoring the other targets for now
+            try:
+                t = targets.targets[0]
+            except IndexError:
+                t = None
+            if len(targets.targets) > 1:
+                logger.warning("multiple targets {}", targets)
+            elif len(targets.targets) == 1:
+                logger.info("target {}", t)
             else:
-                send_silent(ArbiterResult.MOVING)
-        else:
-            send_silent(ArbiterResult.INDECISIVE)
+                logger.warning("no target")
+            # TODO: filter by range FIS
+            t_ = MaybeTarget(target=t, timestamp=datetime.now())
+            queue.append(t_)
+            # jsonl
+            if writer is not None:
+                writer.write(t_.model_dump_json() + "\n")
+            # note that deque in python will automatically remove the oldest element
+            # which is quite a strange behavior compared to other languages
+            # but it avoids the need to pop the oldest element manually
+            if len(queue) < MAX_SIZE:
+                send_silent(tx, ArbiterResult.INDECISIVE)
+                continue
+            if all_none(queue):
+                send_silent(tx, ArbiterResult.IDLE)
+            elif all_available(queue):
+                x_avg = float(
+                    np.mean([
+                        t.target.coord[0] for t in queue if t.target is not None
+                    ]))
+                y_avg = float(
+                    np.mean([
+                        t.target.coord[1] for t in queue if t.target is not None
+                    ]))
+                speed_avg_abs = np.abs(
+                    [t.target.speed for t in queue if t.target is not None])
+                speed_avg = float(np.mean(speed_avg_abs))
+                speed_std = float(np.std(speed_avg_abs))
+                input = FisInput(xAvg=x_avg,
+                                 yAvg=y_avg,
+                                 speedMean=speed_avg,
+                                 speedStd=speed_std)
+                result = infer(input)
+                logger.info(f"Input={input}; Result={result}")
+                if result > 0:
+                    send_silent(tx, ArbiterResult.STILL)
+                else:
+                    send_silent(tx, ArbiterResult.MOVING)
+            else:
+                send_silent(tx, ArbiterResult.INDECISIVE)
 
 
 async def action_loop(door: MemoryObjectSendStream[DoorSignal],
@@ -220,8 +224,6 @@ def main(port: str,
             logger.error(f"{output} is a directory")
             return
         logger.info(f"Output file: {output}")
-    result_tx, result_rx = create_memory_object_stream[ArbiterResult](16)
-    door_tx, door_rx = create_memory_object_stream[DoorSignal](16)
 
     def _block(result_tx: MemoryObjectSendStream[ArbiterResult]):
         with Serial(port, baudrate) as ser:
@@ -232,9 +234,11 @@ def main(port: str,
                 infer_block(ser, result_tx)
 
     async def _main():
+        result_tx, result_rx = create_memory_object_stream[ArbiterResult](16)
+        door_tx, door_rx = create_memory_object_stream[DoorSignal](16)
         async with create_task_group() as tg:
-            tg.start_soon(action_loop, door_tx, result_rx)
             tg.start_soon(door_loop, door_rx)
+            tg.start_soon(action_loop, door_tx, result_rx)
             _block_task = thread_run_sync(_block, result_tx)
             tg.start_soon(lambda: _block_task)
 
