@@ -1,22 +1,24 @@
+import sys
+from collections import deque
+from datetime import datetime, timedelta
+from enum import Enum, auto
 from io import TextIOWrapper
+from pathlib import Path
 from typing import Iterable, Optional
 
-from capture.model import Target, Targets, END_MAGIC
-from app.stillness_fis import infer, FisInput
-from app.gpio import GPIO
-from serial import Serial
-from loguru import logger
-from collections import deque
-from pydantic import BaseModel
-from datetime import datetime, timedelta
+import anyio
 import click
 import numpy as np
-import anyio
-from enum import Enum, auto
-from anyio.to_thread import run_sync as thread_run_sync
+from anyio import create_memory_object_stream, create_task_group
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
-from anyio import create_task_group, create_memory_object_stream
-from pathlib import Path
+from anyio import to_thread, from_thread, open_file, AsyncFile
+from loguru import logger
+from pydantic import BaseModel
+from serial import Serial
+
+from app.gpio import GPIO
+from app.stillness_fis import FisInput, infer
+from capture.model import END_MAGIC, Target, Targets
 
 # low: no detection
 # high: detection
@@ -62,12 +64,19 @@ class MaybeTarget(BaseModel, frozen=True):
     timestamp: datetime
 
 
-def gen_target(serial: Serial):
+async def gen_target(serial: Serial):
     while True:
-        data = serial.read_until(END_MAGIC)
-        if data:
-            targets = Targets.unmarshal(data)
-            yield targets
+        try:
+            with anyio.fail_after(0.1):
+                data = await to_thread.run_sync(serial.read_until, END_MAGIC)
+                if data:
+                    targets = Targets.unmarshal(data)
+                    yield targets
+        except TimeoutError:
+            logger.warning("serial read timeout")
+        except ValueError as e:
+            logger.error("serial read error: {}", e)
+            continue
 
 
 MAX_SIZE = 16
@@ -85,9 +94,9 @@ def check_anyio_version():
         1] >= 3, "anyio version must be >= 4.3"
 
 
-def infer_block(ser: Serial,
-                tx: MemoryObjectSendStream[ArbiterResult],
-                writer: Optional[TextIOWrapper] = None):
+async def infer_loop(ser: Serial,
+                     tx: MemoryObjectSendStream[ArbiterResult],
+                     writer: Optional[AsyncFile] = None):
     logger.info("infer block started")
     queue = deque[MaybeTarget](maxlen=MAX_SIZE)
 
@@ -104,16 +113,8 @@ def infer_block(ser: Serial,
     def all_available(targets: Iterable[MaybeTarget]) -> bool:
         return all(t.target is not None for t in targets)
 
-    def send_silent(tx: MemoryObjectSendStream[ArbiterResult],
-                    result: ArbiterResult):
-        try:
-            tx.send_nowait(result)
-        except anyio.WouldBlock:
-            logger.warning("result queue is full, dropping the result {}",
-                           result)
-
     with tx:
-        for targets in gen_target(ser):
+        async for targets in gen_target(ser):
             # NOTE: I'm ignoring the other targets for now
             try:
                 t = targets.targets[0]
@@ -130,15 +131,15 @@ def infer_block(ser: Serial,
             queue.append(t_)
             # jsonl
             if writer is not None:
-                writer.write(t_.model_dump_json() + "\n")
+                await writer.write(t_.model_dump_json() + "\n")
             # note that deque in python will automatically remove the oldest element
             # which is quite a strange behavior compared to other languages
             # but it avoids the need to pop the oldest element manually
             if len(queue) < MAX_SIZE:
-                send_silent(tx, ArbiterResult.INDECISIVE)
+                await tx.send(ArbiterResult.INDECISIVE)
                 continue
             if all_none(queue):
-                send_silent(tx, ArbiterResult.IDLE)
+                await tx.send(ArbiterResult.IDLE)
             elif all_available(queue):
                 x_avg = float(
                     np.mean([
@@ -152,18 +153,18 @@ def infer_block(ser: Serial,
                     [t.target.speed for t in queue if t.target is not None])
                 speed_avg = float(np.mean(speed_avg_abs))
                 speed_std = float(np.std(speed_avg_abs))
-                input = FisInput(xAvg=x_avg,
-                                 yAvg=y_avg,
-                                 speedMean=speed_avg,
-                                 speedStd=speed_std)
-                result = infer(input)
-                logger.info(f"Input={input}; Result={result}")
+                fis_in = FisInput(xAvg=x_avg,
+                                  yAvg=y_avg,
+                                  speedMean=speed_avg,
+                                  speedStd=speed_std)
+                result = infer(fis_in)
+                logger.info(f"Input={fis_in}; Result={result}")
                 if result > 0:
-                    send_silent(tx, ArbiterResult.STILL)
+                    await tx.send(ArbiterResult.STILL)
                 else:
-                    send_silent(tx, ArbiterResult.MOVING)
+                    await tx.send(ArbiterResult.MOVING)
             else:
-                send_silent(tx, ArbiterResult.INDECISIVE)
+                await tx.send(ArbiterResult.INDECISIVE)
 
 
 async def action_loop(door: MemoryObjectSendStream[DoorSignal],
@@ -200,8 +201,18 @@ async def door_loop(door: MemoryObjectReceiveStream[DoorSignal]):
                     state = DoorState.CLOSED
 
 
+if sys.platform == "linux":
+    DEFAULT_PORT = "/dev/ttyUSB0"
+elif sys.platform == "darwin":
+    DEFAULT_PORT = "/dev/cu.usbserial-0001"
+elif sys.platform == "win32":
+    DEFAULT_PORT = "COM3"
+else:
+    DEFAULT_PORT = "/dev/ttyUSB0"
+
+
 @click.command()
-@click.argument("port", type=str, default="/dev/ttyUSB0")
+@click.argument("port", type=str, default=DEFAULT_PORT)
 @click.option("--baudrate", type=int, default=256_000, help="Baudrate")
 @click.option("-o", "--output", type=str, help="Output file", default=None)
 @click.option("--overwrite", is_flag=True, help="Overwrite the output file")
@@ -225,22 +236,23 @@ def main(port: str,
             return
         logger.info(f"Output file: {output}")
 
-    def _block(result_tx: MemoryObjectSendStream[ArbiterResult]):
+    async def _block(result_tx: MemoryObjectSendStream[ArbiterResult]):
         with Serial(port, baudrate) as ser:
             if output_path is not None:
-                with open(output_path, "w", encoding="utf-8") as f:
-                    infer_block(ser, result_tx, f)
+                async with await open_file(output_path, "w",
+                                           encoding="utf-8") as f:
+                    await infer_loop(ser, result_tx, f)
             else:
-                infer_block(ser, result_tx)
+                await infer_loop(ser, result_tx)
 
     async def _main():
-        result_tx, result_rx = create_memory_object_stream[ArbiterResult](16)
-        door_tx, door_rx = create_memory_object_stream[DoorSignal](16)
+        # https://github.com/agronholm/anyio/discussions/521
         async with create_task_group() as tg:
+            result_tx, result_rx = create_memory_object_stream[ArbiterResult](0)
+            door_tx, door_rx = create_memory_object_stream[DoorSignal](0)
             tg.start_soon(door_loop, door_rx)
             tg.start_soon(action_loop, door_tx, result_rx)
-            _block_task = thread_run_sync(_block, result_tx)
-            tg.start_soon(lambda: _block_task)
+            tg.start_soon(_block, result_tx)
 
     anyio.run(_main)
 
