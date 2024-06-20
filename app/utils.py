@@ -23,4 +23,10 @@ def centroid(domain: range,
 
 
 def mapRange(x: Num, inMin: Num, inMax: Num, outMin: Num, outMax: Num) -> float:
+    assert inMin < inMax, "inMin must be less than inMax"
+    assert outMin < outMax, "outMin must be less than outMax"
+    if x < inMin:
+        return outMin
+    if x > inMax:
+        return outMax
     return (x - inMin) * (outMax - outMin) / (inMax - inMin) + outMin

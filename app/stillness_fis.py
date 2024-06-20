@@ -6,8 +6,8 @@ from .utils import centroid, mapRange
 
 # https://github.com/scikit-fuzzy/scikit-fuzzy/blob/master/docs/examples/plot_tipping_problem_newapi.py
 # Define the universe of discourse for each variable
-xAvg = ctrl.Antecedent(np.arange(-1000, 1001, 1), "xAvg")
-yAvg = ctrl.Antecedent(np.arange(-10, 2001, 1), "yAvg")
+xAvg = ctrl.Antecedent(np.arange(-1000, 1000, 1), "xAvg")
+yAvg = ctrl.Antecedent(np.arange(-10, 2000, 1), "yAvg")
 speedMean = ctrl.Antecedent(np.arange(0, 13, 1), "speedMean")
 speedStd = ctrl.Antecedent(np.arange(0, 9, 1), "speedStd")
 output = ctrl.Consequent(np.arange(-1, 2, 1), "output")
@@ -61,11 +61,11 @@ class FisInput(BaseModel, frozen=True):
     speedStd: float
 
 
-def infer_raw(input: FisInput) -> float:
-    _fis.input["xAvg"] = input.xAvg
-    _fis.input["yAvg"] = input.yAvg
-    _fis.input["speedMean"] = input.speedMean
-    _fis.input["speedStd"] = input.speedStd
+def infer_raw(fis_in: FisInput) -> float:
+    _fis.input["xAvg"] = fis_in.xAvg
+    _fis.input["yAvg"] = fis_in.yAvg
+    _fis.input["speedMean"] = fis_in.speedMean
+    _fis.input["speedStd"] = fis_in.speedStd
     _fis.compute()
     return _fis.output["output"]
 
@@ -77,16 +77,18 @@ def gauss_fn(x: float, mean: float, sigma: float) -> float:
     return float(np.exp(-((x - mean)**2.0) / (2 * sigma**2.0)))
 
 
-MAX_VAL = centroid(
-    range(-1, 1),
-    lambda x: gauss_fn(x, 1, 0.6),
-)
-MIN_VAL = centroid(
-    range(-1, 1),
-    lambda x: gauss_fn(x, -1, 0.6),
-)
+# MAX_VAL = centroid(
+#     range(-1, 1),
+#     lambda x: gauss_fn(x, 1, 0.6),
+# )
+MAX_VAL = 0.45
+# MIN_VAL = centroid(
+#     range(-1, 1),
+#     lambda x: gauss_fn(x, -1, 0.6),
+# )
+MIN_VAL = -0.45
 
 
-def infer(input: FisInput) -> float:
-    raw = infer_raw(input)
+def infer(fis_in: FisInput) -> float:
+    raw = infer_raw(fis_in)
     return mapRange(raw, MIN_VAL, MAX_VAL, -1, 1)

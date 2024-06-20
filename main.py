@@ -15,10 +15,12 @@ from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStre
 from anyio import to_thread, from_thread, open_file, AsyncFile
 from loguru import logger
 from pydantic import BaseModel
+from pymysql import TIME
 from serial import Serial
 
 from app.gpio import GPIO
-from app.stillness_fis import FisInput, infer
+from app.stillness_fis import FisInput, infer as infer_stillness
+from app.range_fis import infer as infer_range
 from capture.model import END_MAGIC, Target, Targets
 
 MAX_SIZE = 16
@@ -69,9 +71,11 @@ class MaybeTarget(BaseModel, frozen=True):
 
 
 async def gen_target(serial: Serial):
+    TIMEOUT = 0.2
+    serial.timeout = TIMEOUT
     while True:
         try:
-            with anyio.fail_after(0.1):
+            with anyio.fail_after(TIMEOUT):
                 data = await to_thread.run_sync(serial.read_until, END_MAGIC)
                 if data:
                     targets = Targets.unmarshal(data)
@@ -121,17 +125,30 @@ async def infer_loop(ser: Serial,
 
     with tx:
         async for targets in gen_target(ser):
-            # TODO: filter by range FIS
+
+            def cond(t: Target) -> bool:
+                res = infer_range(t.coord[0], t.coord[1])
+                logger.debug("infer_range({}, {})={}", t.coord[0], t.coord[1],
+                             res)
+                return res > -0.5
+
+            tgs = targets.targets
+            before_len = len(tgs)
+            filtered_tgs = list(filter(cond, targets.targets))
+            after_len = len(tgs)
+            if before_len != after_len:
+                logger.warning("before={}; after={}", targets,
+                               Targets(targets=tgs))
 
             # find the distance that is closest to the origin point
-            if len(targets.targets) == 0:
+            if len(filtered_tgs) == 0:
                 logger.warning("no target detected")
                 t = None
-            elif len(targets.targets) == 1:
+            elif len(filtered_tgs) == 1:
                 t = targets.targets[0]
                 logger.info("single target {}", t)
             else:
-                t = min(targets.targets,
+                t = min(filtered_tgs,
                         key=lambda x: calc_distance(x.coord, ORIGIN_POINT))
                 logger.warning("multiple targets {}; selected {}", targets, t)
             t_ = MaybeTarget(target=t, timestamp=datetime.now())
@@ -164,7 +181,7 @@ async def infer_loop(ser: Serial,
                                   yAvg=y_avg,
                                   speedMean=speed_avg,
                                   speedStd=speed_std)
-                result = infer(fis_in)
+                result = infer_stillness(fis_in)
                 logger.info(f"Input={fis_in}; Result={result}")
                 if result > 0:
                     await tx.send(ArbiterResult.STILL)
@@ -259,7 +276,7 @@ def main(port: str,
             door_tx, door_rx = create_memory_object_stream[DoorSignal](0)
             tg.start_soon(door_loop, door_rx)
             tg.start_soon(action_loop, door_tx, result_rx)
-            tg.start_soon(_block, result_tx)
+            await _block(result_tx)
 
     anyio.run(_main)
 
