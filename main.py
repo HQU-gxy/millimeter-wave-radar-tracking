@@ -108,7 +108,8 @@ def infer_block(ser: Serial,
         try:
             tx.send_nowait(result)
         except anyio.WouldBlock:
-            ...
+            logger.warning("result queue is full, dropping the result {}",
+                           result)
 
     for targets in gen_target(ser):
         # NOTE: I'm ignoring the other targets for now
@@ -143,11 +144,10 @@ def infer_block(ser: Serial,
             y_avg = float(
                 np.mean(
                     [t.target.coord[1] for t in queue if t.target is not None]))
-            speed_avg = float(
-                np.mean([t.target.speed for t in queue if t.target is not None
-                        ]))
-            speed_std = float(
-                np.std([t.target.speed for t in queue if t.target is not None]))
+            speed_avg_abs = np.abs(
+                [t.target.speed for t in queue if t.target is not None])
+            speed_avg = float(np.mean(speed_avg_abs))
+            speed_std = float(np.std(speed_avg_abs))
             input = FisInput(xAvg=x_avg,
                              yAvg=y_avg,
                              speedMean=speed_avg,
