@@ -1,10 +1,11 @@
+from math import e
 import sys
 from collections import deque
 from datetime import datetime, timedelta
 from enum import Enum, auto
 from io import TextIOWrapper
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Sequence
 
 import anyio
 import click
@@ -19,6 +20,9 @@ from serial import Serial
 from app.gpio import GPIO
 from app.stillness_fis import FisInput, infer
 from capture.model import END_MAGIC, Target, Targets
+
+MAX_SIZE = 16
+ORIGIN_POINT = (0, 0)
 
 # low: no detection
 # high: detection
@@ -79,9 +83,6 @@ async def gen_target(serial: Serial):
             continue
 
 
-MAX_SIZE = 16
-
-
 def check_anyio_version():
     """
     Check if the anyio version is greater than 4.3
@@ -113,20 +114,26 @@ async def infer_loop(ser: Serial,
     def all_available(targets: Iterable[MaybeTarget]) -> bool:
         return all(t.target is not None for t in targets)
 
+    def calc_distance(p1: Sequence[int], p2: Sequence[int]):
+        assert len(p1) == 2, "p1 must be a 2-tuple"
+        assert len(p2) == 2, "p2 must be a 2-tuple"
+        return float(np.linalg.norm(np.array(p1) - np.array(p2)))
+
     with tx:
         async for targets in gen_target(ser):
-            # NOTE: I'm ignoring the other targets for now
-            try:
-                t = targets.targets[0]
-            except IndexError:
-                t = None
-            if len(targets.targets) > 1:
-                logger.warning("multiple targets {}", targets)
-            elif len(targets.targets) == 1:
-                logger.info("target {}", t)
-            else:
-                logger.warning("no target")
             # TODO: filter by range FIS
+
+            # find the distance that is closest to the origin point
+            if len(targets.targets) == 0:
+                logger.warning("no target detected")
+                t = None
+            elif len(targets.targets) == 1:
+                t = targets.targets[0]
+                logger.info("single target {}", t)
+            else:
+                t = min(targets.targets,
+                        key=lambda x: calc_distance(x.coord, ORIGIN_POINT))
+                logger.warning("multiple targets {}; selected {}", targets, t)
             t_ = MaybeTarget(target=t, timestamp=datetime.now())
             queue.append(t_)
             # jsonl
