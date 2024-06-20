@@ -165,15 +165,16 @@ def infer_block(ser: Serial,
 async def action_loop(door: MemoryObjectSendStream[DoorSignal],
                       queue: MemoryObjectReceiveStream[ArbiterResult]):
     logger.info("action loop started")
-    async for result in queue:
-        if result == ArbiterResult.MOVING:
-            await door.send(DoorSignal.UP)
-        elif result == ArbiterResult.STILL:
-            ...
-        elif result == ArbiterResult.IDLE:
-            await door.send(DoorSignal.DOWN)
-        elif result == ArbiterResult.INDECISIVE:
-            ...
+    async with queue:
+        async for result in queue:
+            if result == ArbiterResult.MOVING:
+                await door.send(DoorSignal.UP)
+            elif result == ArbiterResult.STILL:
+                ...
+            elif result == ArbiterResult.IDLE:
+                await door.send(DoorSignal.DOWN)
+            elif result == ArbiterResult.INDECISIVE:
+                ...
 
 
 async def door_loop(door: MemoryObjectReceiveStream[DoorSignal]):
@@ -181,17 +182,18 @@ async def door_loop(door: MemoryObjectReceiveStream[DoorSignal]):
     state = DoorState.CLOSED
     io = GPIO()
     io.low()
-    async for signal in door:
-        if signal == DoorSignal.UP:
-            if state == DoorState.CLOSED:
-                logger.info("Door UP")
-                io.high()
-                state = DoorState.OPEN
-        elif signal == DoorSignal.DOWN:
-            if state == DoorState.OPEN:
-                logger.info("Door DOWN")
-                io.low()
-                state = DoorState.CLOSED
+    async with door:
+        async for signal in door:
+            if signal == DoorSignal.UP:
+                if state == DoorState.CLOSED:
+                    logger.info("Door UP")
+                    io.high()
+                    state = DoorState.OPEN
+            elif signal == DoorSignal.DOWN:
+                if state == DoorState.OPEN:
+                    logger.info("Door DOWN")
+                    io.low()
+                    state = DoorState.CLOSED
 
 
 @click.command()
@@ -218,10 +220,10 @@ def main(port: str,
             logger.error(f"{output} is a directory")
             return
         logger.info(f"Output file: {output}")
-    result_tx, result_rx = create_memory_object_stream[ArbiterResult]()
-    door_tx, door_rx = create_memory_object_stream[DoorSignal]()
+    result_tx, result_rx = create_memory_object_stream[ArbiterResult](16)
+    door_tx, door_rx = create_memory_object_stream[DoorSignal](16)
 
-    def _block():
+    def _block(result_tx: MemoryObjectSendStream[ArbiterResult]):
         with Serial(port, baudrate) as ser:
             if output_path is not None:
                 with open(output_path, "w", encoding="utf-8") as f:
@@ -233,7 +235,7 @@ def main(port: str,
         async with create_task_group() as tg:
             tg.start_soon(action_loop, door_tx, result_rx)
             tg.start_soon(door_loop, door_rx)
-            _block_task = thread_run_sync(_block)
+            _block_task = thread_run_sync(_block, result_tx)
             tg.start_soon(lambda: _block_task)
 
     anyio.run(_main)
