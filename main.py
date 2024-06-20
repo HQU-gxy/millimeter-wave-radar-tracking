@@ -1,7 +1,11 @@
 from asyncio import to_thread
+from io import TextIOWrapper
 from typing import Iterable, Optional
+
+from hl7 import isfile
+from traitlets import default
 from capture.model import Target, Targets, END_MAGIC
-from app.fis import infer, FisInput
+from app.stillness_fis import infer, FisInput
 from app.gpio import GPIO
 from serial import Serial
 from loguru import logger
@@ -15,6 +19,7 @@ from enum import Enum, auto
 from anyio.to_thread import run_sync as thread_run_sync
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from anyio import create_task_group, create_memory_object_stream
+from pathlib import Path
 
 # low: no detection
 # high: detection
@@ -83,7 +88,9 @@ def check_anyio_version():
         1] >= 3, "anyio version must be >= 4.3"
 
 
-def infer_block(ser: Serial, tx: MemoryObjectSendStream[ArbiterResult]):
+def infer_block(ser: Serial,
+                tx: MemoryObjectSendStream[ArbiterResult],
+                writer: Optional[TextIOWrapper] = None):
     queue = deque[MaybeTarget](maxlen=MAX_SIZE)
 
     # if all of the targets are None, then the object is not present for sure
@@ -106,12 +113,23 @@ def infer_block(ser: Serial, tx: MemoryObjectSendStream[ArbiterResult]):
             ...
 
     for targets in gen_target(ser):
+        # NOTE: I'm ignoring the other targets for now
         try:
             t = targets.targets[0]
         except IndexError:
             t = None
-        logger.info(f"Target: {t}")
-        queue.append(MaybeTarget(target=t, timestamp=datetime.now()))
+        if len(targets.targets) > 1:
+            logger.warning("multiple targets {}", targets)
+        elif len(targets.targets) == 1:
+            logger.info("target {}", t)
+        else:
+            logger.warning("no target")
+        # TODO: filter by range FIS
+        t_ = MaybeTarget(target=t, timestamp=datetime.now())
+        queue.append(t_)
+        # jsonl
+        if writer is not None:
+            writer.write(t_.model_dump_json() + "\n")
         # note that deque in python will automatically remove the oldest element
         # which is quite a strange behavior compared to other languages
         # but it avoids the need to pop the oldest element manually
@@ -150,15 +168,13 @@ async def action_loop(door: MemoryObjectSendStream[DoorSignal],
                       queue: MemoryObjectReceiveStream[ArbiterResult]):
     async for result in queue:
         if result == ArbiterResult.MOVING:
-            logger.info("Object is moving")
             await door.send(DoorSignal.UP)
         elif result == ArbiterResult.STILL:
-            logger.info("Object is still")
+            ...
         elif result == ArbiterResult.IDLE:
-            logger.info("No object present")
             await door.send(DoorSignal.DOWN)
         elif result == ArbiterResult.INDECISIVE:
-            logger.info("Indecisive")
+            ...
 
 
 async def door_loop(door: MemoryObjectReceiveStream[DoorSignal]):
@@ -168,10 +184,12 @@ async def door_loop(door: MemoryObjectReceiveStream[DoorSignal]):
     async for signal in door:
         if signal == DoorSignal.UP:
             if state == DoorState.CLOSED:
+                logger.info("Door UP")
                 io.high()
                 state = DoorState.OPEN
         elif signal == DoorSignal.DOWN:
             if state == DoorState.OPEN:
+                logger.info("Door DOWN")
                 io.low()
                 state = DoorState.CLOSED
 
@@ -179,16 +197,39 @@ async def door_loop(door: MemoryObjectReceiveStream[DoorSignal]):
 @click.command()
 @click.argument("port", type=str, help="Serial port", default="/dev/ttyUSB0")
 @click.option("--baudrate", type=int, default=256_000, help="Baudrate")
-def main(port: str, baudrate: int):
+@click.option("-o", "--output", type=str, help="Output file", default=None)
+@click.option("--overwrite", is_flag=True, help="Overwrite the output file")
+def main(port: str,
+         baudrate: int,
+         output: Optional[str] = None,
+         overwrite: bool = False):
     check_anyio_version()
+    if output is None:
+        logger.info("no output file specified, not output the result to file")
+        output_path = None
+    else:
+        output_path = Path(output)
+        if output_path.exists() and not overwrite:
+            logger.error(
+                f"Output file {output} exists, use --overwrite to overwrite the file"
+            )
+            return
+        if output_path.is_dir():
+            logger.error(f"{output} is a directory")
+            return
+        logger.info(f"Output file: {output}")
+    result_tx, result_rx = create_memory_object_stream[ArbiterResult]()
+    door_tx, door_rx = create_memory_object_stream[DoorSignal]()
+    anyio.run(action_loop, door_tx, result_rx)
+    anyio.run(door_loop, door_rx)
+    # sync looping, will block the main thread
     with Serial(port, baudrate) as ser:
-        result_tx, result_rx = create_memory_object_stream[ArbiterResult]()
-        door_tx, door_rx = create_memory_object_stream[DoorSignal]()
-        anyio.run(action_loop, door_tx, result_rx)
-        anyio.run(door_loop, door_rx)
-        # sync looping, will block the main thread
         try:
-            infer_block(ser, result_tx)
+            if output_path is not None:
+                with open(output_path, "w", encoding="utf-8") as f:
+                    infer_block(ser, result_tx, f)
+            else:
+                infer_block(ser, result_tx)
         except KeyboardInterrupt:
             ...
 

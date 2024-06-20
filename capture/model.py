@@ -10,7 +10,7 @@ from typing import (
     TypedDict,
 )
 
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr, computed_field
 
 END_MAGIC: Final = bytes([0x55, 0xCC])
 
@@ -42,9 +42,6 @@ class Target(BaseModel, frozen=True):
         if data == bytes([0, 0, 0, 0, 0, 0, 0, 0]):
             return None
 
-        def list_hex(data: bytes):
-            return " ".join(f"{b:02x}" for b in data)
-
         def msb_bit_int16(num: int) -> int:
             """
             Some genius decided to use the most significant bit as the sign bit
@@ -72,15 +69,24 @@ class Target(BaseModel, frozen=True):
         resolution = int.from_bytes(data[6:8], byteorder="little", signed=False)
         return Target(coord=(x, y), speed=speed, resolution=resolution)
 
+    def __str__(self) -> str:
+        return f"({self.coord[0]}, {self.coord[1]})@{self.speed}"
+
+
+MAGIC: Final[bytes] = bytes([0xAA, 0xFF, 0x03, 0x00])
+
 
 class Targets(BaseModel, frozen=True):
-    MAGIC: Final[bytes] = bytes([0xAA, 0xFF, 0x03, 0x00])
     targets: List[Target] = []
+
+    def __str__(self) -> str:
+        inner = ", ".join([str(t) for t in self.targets])
+        return f"[{inner}]"
 
     @staticmethod
     def unmarshal(data: bytes):
         offset = 0
-        if data[0:4] != Targets.MAGIC:
+        if data[0:4] != MAGIC:
             raise ValueError("Invalid magic")
         offset += 4
         targets = []
