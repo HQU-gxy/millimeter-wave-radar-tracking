@@ -1,9 +1,7 @@
-from math import e
 import sys
 from collections import deque
 from datetime import datetime, timedelta
 from enum import Enum, auto
-from io import TextIOWrapper
 from pathlib import Path
 from typing import Iterable, Optional, Sequence
 
@@ -15,7 +13,6 @@ from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStre
 from anyio import to_thread, from_thread, open_file, AsyncFile
 from loguru import logger
 from pydantic import BaseModel
-from pymysql import TIME
 from serial import Serial
 
 from app.gpio import GPIO
