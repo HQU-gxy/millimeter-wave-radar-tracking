@@ -6,6 +6,9 @@ a naive way
 apt install -y \
     python3-pydantic \
     python3-serial \
+    python3-numpy \
+    python3-matplotlib \
+    python3-sklearn \
     python3-libgpiod \
     gpiod \
     python3-loguru \

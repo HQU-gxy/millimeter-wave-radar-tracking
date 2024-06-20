@@ -10,7 +10,7 @@ from typing import (
     TypedDict,
 )
 
-from pydantic import BaseModel, Field, PrivateAttr, computed_field
+from pydantic import BaseModel, Field, PrivateAttr
 
 END_MAGIC: Final = bytes([0x55, 0xCC])
 

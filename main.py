@@ -1,4 +1,3 @@
-from asyncio import to_thread
 from io import TextIOWrapper
 from typing import Iterable, Optional
 
@@ -89,6 +88,7 @@ def check_anyio_version():
 def infer_block(ser: Serial,
                 tx: MemoryObjectSendStream[ArbiterResult],
                 writer: Optional[TextIOWrapper] = None):
+    logger.info("infer block started")
     queue = deque[MaybeTarget](maxlen=MAX_SIZE)
 
     # if all of the targets are None, then the object is not present for sure
@@ -164,6 +164,7 @@ def infer_block(ser: Serial,
 
 async def action_loop(door: MemoryObjectSendStream[DoorSignal],
                       queue: MemoryObjectReceiveStream[ArbiterResult]):
+    logger.info("action loop started")
     async for result in queue:
         if result == ArbiterResult.MOVING:
             await door.send(DoorSignal.UP)
@@ -176,6 +177,7 @@ async def action_loop(door: MemoryObjectSendStream[DoorSignal],
 
 
 async def door_loop(door: MemoryObjectReceiveStream[DoorSignal]):
+    logger.info("door loop started")
     state = DoorState.CLOSED
     io = GPIO()
     io.low()
@@ -193,7 +195,7 @@ async def door_loop(door: MemoryObjectReceiveStream[DoorSignal]):
 
 
 @click.command()
-@click.argument("port", type=str, help="Serial port", default="/dev/ttyUSB0")
+@click.argument("port", type=str, default="/dev/ttyUSB0")
 @click.option("--baudrate", type=int, default=256_000, help="Baudrate")
 @click.option("-o", "--output", type=str, help="Output file", default=None)
 @click.option("--overwrite", is_flag=True, help="Overwrite the output file")
@@ -218,18 +220,26 @@ def main(port: str,
         logger.info(f"Output file: {output}")
     result_tx, result_rx = create_memory_object_stream[ArbiterResult]()
     door_tx, door_rx = create_memory_object_stream[DoorSignal]()
-    anyio.run(action_loop, door_tx, result_rx)
-    anyio.run(door_loop, door_rx)
-    # sync looping, will block the main thread
-    with Serial(port, baudrate) as ser:
-        try:
-            if output_path is not None:
-                with open(output_path, "w", encoding="utf-8") as f:
-                    infer_block(ser, result_tx, f)
-            else:
-                infer_block(ser, result_tx)
-        except KeyboardInterrupt:
-            ...
+
+    def _block():
+        with Serial(port, baudrate) as ser:
+            try:
+                if output_path is not None:
+                    with open(output_path, "w", encoding="utf-8") as f:
+                        infer_block(ser, result_tx, f)
+                else:
+                    infer_block(ser, result_tx)
+            except KeyboardInterrupt:
+                ...
+
+    async def _main():
+        async with create_task_group() as tg:
+            tg.start_soon(action_loop, door_tx, result_rx)
+            tg.start_soon(door_loop, door_rx)
+            _block_task = thread_run_sync(_block)
+            tg.start_soon(lambda: _block_task)
+
+    anyio.run(_main)
 
 
 if __name__ == "__main__":
