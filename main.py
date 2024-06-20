@@ -152,8 +152,8 @@ def infer_block(ser: Serial,
                              yAvg=y_avg,
                              speedMean=speed_avg,
                              speedStd=speed_std)
-            logger.info(f"Input: {input}")
             result = infer(input)
+            logger.info(f"Input={input}; Result={result}")
             if result > 0:
                 send_silent(ArbiterResult.STILL)
             else:
@@ -223,14 +223,11 @@ def main(port: str,
 
     def _block():
         with Serial(port, baudrate) as ser:
-            try:
-                if output_path is not None:
-                    with open(output_path, "w", encoding="utf-8") as f:
-                        infer_block(ser, result_tx, f)
-                else:
-                    infer_block(ser, result_tx)
-            except KeyboardInterrupt:
-                ...
+            if output_path is not None:
+                with open(output_path, "w", encoding="utf-8") as f:
+                    infer_block(ser, result_tx, f)
+            else:
+                infer_block(ser, result_tx)
 
     async def _main():
         async with create_task_group() as tg:
