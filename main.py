@@ -2,8 +2,6 @@ from asyncio import to_thread
 from io import TextIOWrapper
 from typing import Iterable, Optional
 
-from hl7 import isfile
-from traitlets import default
 from capture.model import Target, Targets, END_MAGIC
 from app.stillness_fis import infer, FisInput
 from app.gpio import GPIO
