@@ -8,13 +8,13 @@ from typing import Callable, Union
 from .utils import Num, centroid, mapRange
 
 x_range = Antecedent(np.arange(-2000, 2000, 1), "x_range")
-x_range["left"] = fuzz.zmf(x_range.universe, -2000.0, 0)
+x_range["left"] = fuzz.zmf(x_range.universe, -2000.0, -650)
 x_range["center"] = fuzz.gaussmf(x_range.universe, 0, 600.0)
-x_range["right"] = fuzz.smf(x_range.universe, 0, 2000.0)
+x_range["right"] = fuzz.smf(x_range.universe, 650, 2000.0)
 
 y_range = Antecedent(np.arange(-10, 2500, 1), "y_range")
-y_range["close"] = fuzz.zmf(y_range.universe, 0, 1600)
-y_range["far"] = fuzz.smf(y_range.universe, 1600, 2500)
+y_range["close"] = fuzz.zmf(y_range.universe, 0, 2000)
+y_range["far"] = fuzz.smf(y_range.universe, 1800, 2500)
 
 output = Consequent(np.arange(-1, 1, 0.01), "output")
 output["false"] = fuzz.gaussmf(output.universe, -1.0, 0.6)

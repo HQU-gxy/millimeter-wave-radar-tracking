@@ -20,7 +20,7 @@ from app.stillness_fis import FisInput, infer as infer_stillness
 from app.range_fis import infer as infer_range
 from capture.model import END_MAGIC, Target, Targets
 
-MAX_SIZE = 16
+MAX_SIZE = 5
 ORIGIN_POINT = (0, 0)
 
 # low: no detection
