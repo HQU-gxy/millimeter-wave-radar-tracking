@@ -1,0 +1,10 @@
+[Unit]
+Description=Radar Service
+
+[Service]
+Restart=on-failure
+RestartSec=5s
+ExecStart=/usr/bin/python3 /root/millimeter-wave-radar-tracking/main.py
+
+[Install]
+WantedBy=multi-user.target

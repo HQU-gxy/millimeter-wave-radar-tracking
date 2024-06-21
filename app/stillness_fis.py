@@ -19,7 +19,7 @@ xAvg["XO"] = fuzz.gaussmf(xAvg.universe, -220.0, 180.0)
 xAvg["XR"] = fuzz.gaussmf(xAvg.universe, 500.0, 230.0)
 
 # Define membership functions for yAvg
-yAvg["YO"] = fuzz.gaussmf(yAvg.universe, 0.0, 750.0)
+yAvg["YO"] = fuzz.gaussmf(yAvg.universe, 0.0, 1000.0)
 yAvg["YN"] = fuzz.gaussmf(yAvg.universe, 2000.0, 250.0)
 
 # Define membership functions for speedMean
