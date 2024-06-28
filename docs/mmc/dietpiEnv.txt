@@ -1,0 +1,8 @@
+# The init system logs to the console defined last.
+consoleargs=console=ttyS0,115200
+usbstoragequirks=
+extraargs=net.ifnames=0
+docker_optimizations=off
+overlay_prefix=sun8i-h3
+overlays=usbhost1 usbhost2
+user_overlays=
