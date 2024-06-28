@@ -17,8 +17,12 @@ cp $SCRIPT_DIR/boot.cmd $WORK_DIR/boot/
 cp $SCRIPT_DIR/boot.scr $WORK_DIR/boot/
 cp $SCRIPT_DIR/dietpiEnv.txt $WORK_DIR/boot/
 cp $SCRIPT_DIR/fstab $WORK_DIR/etc/
+echo "------------------"
 echo "please unplug the SD card and reboot, and run the following commands:"
-echo "resize2fs /dev/mmcblk2p1"
+echo "\tresize2fs /dev/mmcblk2p1"
+echo "------------------"
+echo "disable systemd service for eth0 if you don't want to wait for the network to boot up"
+echo "\tsystemctl disable ifup@eth0.service"
 
 # some notes
 # mount /dev/mmcblk2p1 /mnt/wk
