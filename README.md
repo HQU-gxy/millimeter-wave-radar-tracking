@@ -42,3 +42,11 @@ export HTTP_PROXY=http://$HOST:$PORT
 export HTTPS_PROXY=http://$HOST:$PORT
 export NO_PROXY=127.0.0.1,127.0.0.0/8,192.168.0.0/16,10.0.0.0/8,172.16.0.0/12
 ```
+
+| Primary tables    | Object type | Type of    | Comments                                                      |
+| ----------------- | ----------- | ---------- | ------------------------------------------------------------- |
+| Discretes Input   | Single bit  | Read-Only  | This type of data can be provided by an I/O system.           |
+| Coils             | Single bit  | Read-Write | This type of data can be alterable by an application program. |
+| Input Registers   | 16-bit word | Read-Only  | This type of data can be provided by an I/O system            |
+| Holding Registers | 16-bit word | Read-Write | This type of data can be alterable by an application program. |
+
