@@ -7,22 +7,27 @@ import anyio
 SLAVE_ADDR = 0x67
 OFFSET = 0x11
 # RO
-OBJECT_EXISTS_REG = OFFSET + 0x0
+OBJECT_EXISTS_REG_R = OFFSET + 0x0
+OBJECT_EXISTS_REG_W = OBJECT_EXISTS_REG_R - 1
 # RW
-SASH_STATE_REG = OFFSET + 0x1
+SASH_STATE_REG_R = OFFSET + 0x1
+SASH_STATE_REG_W = SASH_STATE_REG_R - 1
 # RW, default 0
-LED_CTRL_REG = OFFSET + 0x2
+LED_CTRL_REG_R = OFFSET + 0x2
+LED_CTRL_REG_W = LED_CTRL_REG_R - 1
 
 async def async_main(port:str):
     client = AsyncModbusSerialClient(port=port, baudrate=115200)
     await client.connect()
     logger.info("Connected")
-    await client.write_register(0x0, 1, slave=SLAVE_ADDR)
-    logger.info("LED ON")
+    toggle = True
+    await client.write_register(LED_CTRL_REG_W, int(toggle), slave=SLAVE_ADDR)
     while True:
         await anyio.sleep(1)
-        val = await client.read_holding_registers(0x0, slave=SLAVE_ADDR)
-        logger.info("0x{:04X} -> {}", 0x0, val)
+        val = await client.read_holding_registers(OBJECT_EXISTS_REG_R, slave=SLAVE_ADDR)
+        logger.info("0x{:04X} -> {}", OBJECT_EXISTS_REG_R, val.registers)
+        toggle = not toggle
+        await client.write_register(LED_CTRL_REG_W, int(toggle), slave=SLAVE_ADDR)
     client.close()
 
 @click.command()

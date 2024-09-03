@@ -63,6 +63,7 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
 
     on_set_sash_state: Callable[[SashState], None] = lambda _: None
     on_set_led_ctrl: Callable[[int], None] = lambda _: None
+    _object_exist_lock: bool = True
 
     def __init__(self):
         """Initialize."""
@@ -71,7 +72,9 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
     def set_object_exists(self, value: ObjectExists):
         """Set the OBJECT_EXISTS_REG."""
         val = 0xFFFF if value == ObjectExists.OBJECT_EXISTS else 0x0000
+        self._object_exist_lock = False
         self.setValues(OBJECT_EXISTS_REG, val)
+        self._object_exist_lock = True
 
     @override
     def setValues(self, address: int, values: list[int] | int):
@@ -88,7 +91,9 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
         elif address == LED_CTRL_REG:
             self.on_set_led_ctrl(to_int(values))
         elif address == OBJECT_EXISTS_REG:
-            return
+            if self._object_exist_lock:
+                logger.error("Cannot set OBJECT_EXISTS_REG")
+                return
         super().setValues(address, values)
 
     @override
