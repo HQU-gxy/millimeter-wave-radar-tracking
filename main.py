@@ -14,6 +14,7 @@ from anyio import to_thread, from_thread, open_file, AsyncFile
 from loguru import logger
 from pydantic import BaseModel
 from serial import Serial
+from asyncio import CancelledError
 
 from app.gpio import GPIO
 from app.stillness_fis import FisInput, infer as infer_stillness
@@ -43,6 +44,8 @@ async def gen_target(serial: Serial):
                     yield targets
         except TimeoutError:
             logger.warning("serial read timeout")
+        except CancelledError:
+            logger.info("gen_target cancelled")
         except ValueError as e:
             logger.error("serial read error: {}", e)
             continue

@@ -63,7 +63,10 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
 
     on_set_sash_state: Callable[[SashState], None] = lambda _: None
     on_set_led_ctrl: Callable[[int], None] = lambda _: None
-    _object_exist_lock: bool = True
+
+    object_exists: ObjectExists = ObjectExists.NO_OBJECT
+    sash_state: SashState = SashState.STOP
+    io_state: bool = False
 
     def __init__(self):
         """Initialize."""
@@ -71,10 +74,7 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
 
     def set_object_exists(self, value: ObjectExists):
         """Set the OBJECT_EXISTS_REG."""
-        val = 0xFFFF if value == ObjectExists.OBJECT_EXISTS else 0x0000
-        self._object_exist_lock = False
-        self.setValues(OBJECT_EXISTS_REG, val)
-        self._object_exist_lock = True
+        self.object_exists = value
 
     @override
     def setValues(self, address: int, values: list[int] | int):
@@ -87,20 +87,24 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
 
         logger.debug("0x{:04X} <- {}", address, values)
         if address == SASH_STATE_REG:
-            self.on_set_sash_state(SashState(to_int(values)))
+            self.sash_state = SashState(to_int(values))
+            self.on_set_sash_state(self.sash_state)
         elif address == LED_CTRL_REG:
-            self.on_set_led_ctrl(to_int(values))
-        elif address == OBJECT_EXISTS_REG:
-            if self._object_exist_lock:
-                logger.error("Cannot set OBJECT_EXISTS_REG")
-                return
-        super().setValues(address, values)
+            self.io_state = bool(to_int(values))
+            self.on_set_led_ctrl(self.io_state)
 
     @override
     def getValues(self, address: int, count: int = 1):
         """Return the requested values from the datastore."""
-        result: list[int] = super().getValues(address, count=count)
-        return result
+        if address == OBJECT_EXISTS_REG:
+            val = 0x7f if self.object_exists == ObjectExists.OBJECT_EXISTS else 0x80
+            return [val]
+        elif address == SASH_STATE_REG:
+            return [self.sash_state.value]
+        elif address == LED_CTRL_REG:
+            return [int(self.io_state)]
+        else:
+            return super().getValues(address, count=count)
 
     @override
     def validate(self, address: int, count: int = 1):

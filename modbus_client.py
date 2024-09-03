@@ -5,18 +5,19 @@ import anyio
 
 
 SLAVE_ADDR = 0x67
-OFFSET = 0x11
+OFFSET = 0x10
 # RO
 OBJECT_EXISTS_REG_R = OFFSET + 0x0
-OBJECT_EXISTS_REG_W = OBJECT_EXISTS_REG_R - 1
+OBJECT_EXISTS_REG_W = OBJECT_EXISTS_REG_R
 # RW
 SASH_STATE_REG_R = OFFSET + 0x1
-SASH_STATE_REG_W = SASH_STATE_REG_R - 1
+SASH_STATE_REG_W = SASH_STATE_REG_R
 # RW, default 0
 LED_CTRL_REG_R = OFFSET + 0x2
-LED_CTRL_REG_W = LED_CTRL_REG_R - 1
+LED_CTRL_REG_W = LED_CTRL_REG_R
 
-async def async_main(port:str):
+
+async def async_main(port: str):
     client = AsyncModbusSerialClient(port=port, baudrate=115200)
     await client.connect()
     logger.info("Connected")
@@ -30,11 +31,12 @@ async def async_main(port:str):
         await client.write_register(LED_CTRL_REG_W, int(toggle), slave=SLAVE_ADDR)
     client.close()
 
+
 @click.command()
 @click.argument("port", type=str)
 def main(port: str):
     anyio.run(async_main, port)
-    
+
 
 if __name__ == "__main__":
-    main() # pylint: disable=no-value-for-parameter
+    main()  # pylint: disable=no-value-for-parameter
