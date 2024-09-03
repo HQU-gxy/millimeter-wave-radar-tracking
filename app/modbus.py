@@ -22,12 +22,14 @@ else:
 
 
 SLAVE_ADDR = 0x67
+
+OFFSET = 0x11
 # RO
-OBJECT_EXISTS_REG = 0x0
+OBJECT_EXISTS_REG = OFFSET + 0x0
 # RW
-SASH_STATE_REG = 0x1
-# RW, default 0, uint16, unit: ms
-LED_CTRL_REG = 0x2
+SASH_STATE_REG = OFFSET + 0x1
+# RW, default 0
+LED_CTRL_REG = OFFSET + 0x2
 
 
 class SashState(Enum):
@@ -64,7 +66,7 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
 
     def __init__(self):
         """Initialize."""
-        super().__init__(0, [0] * 3)
+        super().__init__(0, [0] * (OFFSET + 3))
 
     def set_object_exists(self, value: ObjectExists):
         """Set the OBJECT_EXISTS_REG."""
