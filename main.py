@@ -19,6 +19,7 @@ from app.gpio import GPIO
 from app.stillness_fis import FisInput, infer as infer_stillness
 from app.range_fis import infer as infer_range
 from capture.model import END_MAGIC, Target, Targets
+from app.state import ArbiterResult, DoorSignal, DoorState, MaybeTarget
 
 MAX_SIZE = 5
 ORIGIN_POINT = (0, 0)
@@ -28,43 +29,6 @@ ORIGIN_POINT = (0, 0)
 #
 # GPIO from low to high, door up immediately
 # GPIO from high to low, door down after 50s
-
-
-class ArbiterResult(Enum):
-    """
-    The result of the arbiter
-    """
-    INDECISIVE = auto()
-    """
-    reserved
-    """
-    MOVING = auto()
-    """
-    object present and moving actively
-    """
-    STILL = auto()
-    """
-    object present but not moving actively
-    """
-    IDLE = auto()
-    """
-    no object present
-    """
-
-
-class DoorState(Enum):
-    OPEN = auto()
-    CLOSED = auto()
-
-
-class DoorSignal(Enum):
-    UP = auto()
-    DOWN = auto()
-
-
-class MaybeTarget(BaseModel, frozen=True):
-    target: Optional[Target]
-    timestamp: datetime
 
 
 async def gen_target(serial: Serial):
@@ -90,15 +54,19 @@ def check_anyio_version():
     Throws an AssertionError if the version is less than 4.3
     """
     from importlib.metadata import version
+
     anyio_version_str = version("anyio").split(".")
     anyio_version = tuple([int(x) for x in anyio_version_str])
-    assert anyio_version[0] == 4 and anyio_version[
-        1] >= 3, "anyio version must be >= 4.3"
+    assert (
+        anyio_version[0] == 4 and anyio_version[1] >= 3
+    ), "anyio version must be >= 4.3"
 
 
-async def infer_loop(ser: Serial,
-                     tx: MemoryObjectSendStream[ArbiterResult],
-                     writer: Optional[AsyncFile] = None):
+async def infer_loop(
+    ser: Serial,
+    tx: MemoryObjectSendStream[ArbiterResult],
+    writer: Optional[AsyncFile] = None,
+):
     logger.info("infer block started")
     queue = deque[MaybeTarget](maxlen=MAX_SIZE)
 
@@ -125,8 +93,7 @@ async def infer_loop(ser: Serial,
 
             def cond(t: Target) -> bool:
                 res = infer_range(t.coord[0], t.coord[1])
-                logger.debug("infer_range({}, {})={}", t.coord[0], t.coord[1],
-                             res)
+                logger.debug("infer_range({}, {})={}", t.coord[0], t.coord[1], res)
                 return res > -0.5
 
             tgs = targets.targets
@@ -134,8 +101,7 @@ async def infer_loop(ser: Serial,
             filtered_tgs = list(filter(cond, targets.targets))
             after_len = len(tgs)
             if before_len != after_len:
-                logger.warning("before={}; after={}", targets,
-                               Targets(targets=tgs))
+                logger.warning("before={}; after={}", targets, Targets(targets=tgs))
 
             # find the distance that is closest to the origin point
             if len(filtered_tgs) == 0:
@@ -145,8 +111,9 @@ async def infer_loop(ser: Serial,
                 t = targets.targets[0]
                 logger.info("single target {}", t)
             else:
-                t = min(filtered_tgs,
-                        key=lambda x: calc_distance(x.coord, ORIGIN_POINT))
+                t = min(
+                    filtered_tgs, key=lambda x: calc_distance(x.coord, ORIGIN_POINT)
+                )
                 logger.warning("multiple targets {}; selected {}", targets, t)
             t_ = MaybeTarget(target=t, timestamp=datetime.now())
             queue.append(t_)
@@ -163,21 +130,19 @@ async def infer_loop(ser: Serial,
                 await tx.send(ArbiterResult.IDLE)
             elif all_available(queue):
                 x_avg = float(
-                    np.mean([
-                        t.target.coord[0] for t in queue if t.target is not None
-                    ]))
+                    np.mean([t.target.coord[0] for t in queue if t.target is not None])
+                )
                 y_avg = float(
-                    np.mean([
-                        t.target.coord[1] for t in queue if t.target is not None
-                    ]))
+                    np.mean([t.target.coord[1] for t in queue if t.target is not None])
+                )
                 speed_avg_abs = np.abs(
-                    [t.target.speed for t in queue if t.target is not None])
+                    [t.target.speed for t in queue if t.target is not None]
+                )
                 speed_avg = float(np.mean(speed_avg_abs))
                 speed_std = float(np.std(speed_avg_abs))
-                fis_in = FisInput(xAvg=x_avg,
-                                  yAvg=y_avg,
-                                  speedMean=speed_avg,
-                                  speedStd=speed_std)
+                fis_in = FisInput(
+                    xAvg=x_avg, yAvg=y_avg, speedMean=speed_avg, speedStd=speed_std
+                )
                 result = infer_stillness(fis_in)
                 logger.info(f"Input={fis_in}; Result={result}")
                 if result > 0:
@@ -188,8 +153,10 @@ async def infer_loop(ser: Serial,
                 await tx.send(ArbiterResult.INDECISIVE)
 
 
-async def action_loop(door: MemoryObjectSendStream[DoorSignal],
-                      queue: MemoryObjectReceiveStream[ArbiterResult]):
+async def action_loop(
+    door: MemoryObjectSendStream[DoorSignal],
+    queue: MemoryObjectReceiveStream[ArbiterResult],
+):
     logger.info("action loop started")
     async with queue:
         async for result in queue:
@@ -237,10 +204,9 @@ else:
 @click.option("--baudrate", type=int, default=256_000, help="Baudrate")
 @click.option("-o", "--output", type=str, help="Output file", default=None)
 @click.option("--overwrite", is_flag=True, help="Overwrite the output file")
-def main(port: str,
-         baudrate: int,
-         output: Optional[str] = None,
-         overwrite: bool = False):
+def main(
+    port: str, baudrate: int, output: Optional[str] = None, overwrite: bool = False
+):
     check_anyio_version()
     if output is None:
         logger.info("no output file specified, not output the result to file")
@@ -260,8 +226,7 @@ def main(port: str,
     async def _block(result_tx: MemoryObjectSendStream[ArbiterResult]):
         with Serial(port, baudrate) as ser:
             if output_path is not None:
-                async with await open_file(output_path, "w",
-                                           encoding="utf-8") as f:
+                async with await open_file(output_path, "w", encoding="utf-8") as f:
                     await infer_loop(ser, result_tx, f)
             else:
                 await infer_loop(ser, result_tx)

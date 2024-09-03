@@ -3,6 +3,7 @@
   "python.analysis.autoImportCompletions": true,
   "cmake.configureOnOpen": false,
   "cSpell.words": [
-    "baudrate"
+    "baudrate",
+    "pymodbus"
   ]
 }
