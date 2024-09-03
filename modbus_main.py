@@ -1,7 +1,7 @@
 from collections import deque
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Iterable, Literal, Optional, Sequence, override
+from typing import Iterable, Literal, Optional, Sequence
 from app.state import ArbiterResult, DoorSignal, DoorState, MaybeTarget
 from app.modbus import (
     modbus_server_loop,

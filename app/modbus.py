@@ -7,9 +7,18 @@ from pymodbus.datastore import (
 )
 from pymodbus.device import ModbusDeviceIdentification
 from pymodbus.server import StartAsyncSerialServer
-from typing import Callable, Literal, override
+from typing import Callable, Literal
 from dataclasses import dataclass
 from enum import Enum, auto
+import sys
+
+if sys.version_info >= (3, 12):
+    from typing import override
+else:
+
+    def override(f):
+        return f
+
 
 SLAVE_ADDR = 0x67
 # RO

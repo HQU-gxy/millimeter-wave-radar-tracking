@@ -19,9 +19,14 @@ apt install -y \
 
 ```bash
 python3 -m pip install -U \
-    scikit-fuzzy --break-system-packages
+    scikit-fuzzy \
+    pymodbus[serial] --break-system-packages
 python3 -m pip install -U \
     anyio  --break-system-packages
+
+python3 -m pip install -U pymodbus[serial] \
+    --break-system-packages \
+    --trusted-host=pypi.tuna.tsinghua.edu.cn
 ```
 
 ```bash
