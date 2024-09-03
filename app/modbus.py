@@ -10,6 +10,7 @@ from pymodbus.server import StartAsyncSerialServer
 from typing import Callable, Literal
 from dataclasses import dataclass
 from enum import Enum, auto
+from loguru import logger
 import sys
 
 if sys.version_info >= (3, 12):
@@ -79,11 +80,9 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
                 return int.from_bytes(bytes(value), "big")
             return value
 
+        logger.debug("0x{:04X} <- {}", address, values)
         if address == SASH_STATE_REG:
-            try:
-                self.on_set_sash_state(SashState(to_int(values)))
-            except ValueError:
-                pass
+            self.on_set_sash_state(SashState(to_int(values)))
         elif address == LED_CTRL_REG:
             self.on_set_led_ctrl(to_int(values))
         elif address == OBJECT_EXISTS_REG:
