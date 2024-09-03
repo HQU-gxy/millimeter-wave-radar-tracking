@@ -17,7 +17,7 @@ OBJECT_EXISTS_REG = 0x0
 # RW
 SASH_STATE_REG = 0x1
 # RW, default 0, uint16, unit: ms
-LED_DELAY_REG = 0x2
+LED_CTRL_REG = 0x2
 
 
 class SashState(Enum):
@@ -50,7 +50,7 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
     """
 
     on_set_sash_state: Callable[[SashState], None] = lambda _: None
-    on_set_led_delay: Callable[[int], None] = lambda _: None
+    on_set_led_ctrl: Callable[[int], None] = lambda _: None
 
     def __init__(self):
         """Initialize."""
@@ -75,8 +75,8 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
                 self.on_set_sash_state(SashState(to_int(values)))
             except ValueError:
                 pass
-        elif address == LED_DELAY_REG:
-            self.on_set_led_delay(to_int(values))
+        elif address == LED_CTRL_REG:
+            self.on_set_led_ctrl(to_int(values))
         elif address == OBJECT_EXISTS_REG:
             return
         super().setValues(address, values)

@@ -1,8 +1,5 @@
-import sys
 from collections import deque
-from dataclasses import dataclass
 from datetime import datetime, timedelta
-from enum import Enum, auto
 from pathlib import Path
 from typing import Iterable, Literal, Optional, Sequence, override
 from app.state import ArbiterResult, DoorSignal, DoorState, MaybeTarget
@@ -21,7 +18,6 @@ from anyio import (
     AsyncFile,
     create_memory_object_stream,
     create_task_group,
-    from_thread,
     open_file,
     to_thread,
 )
@@ -40,22 +36,26 @@ from capture.model import END_MAGIC, Target, Targets
 MAX_SIZE = 5
 ORIGIN_POINT = (0, 0)
 holding_registers = CallbackDataBlock()
-
-led_delay: int = 0
-
-
-def on_led_delay_set(value: int):
-    global led_delay
-    led_delay = value
+io = GPIO()
 
 
-holding_registers.on_set_led_delay = on_led_delay_set
+def on_led_ctrl(value: int):
+    if value > 0:
+        logger.info("LED set")
+        io.high()
+    else:
+        logger.info("LED unset")
+        io.low()
+
+
+holding_registers.on_set_led_ctrl = on_led_ctrl
 
 sash_state: SashState = SashState.STOP
 
 
 def on_screen_movement_set(value: SashState):
     global sash_state
+    logger.info("sash state set to {}", value)
     sash_state = value
 
 
@@ -243,6 +243,7 @@ def main(
     async def _main():
         # https://github.com/agronholm/anyio/discussions/521
         async with create_task_group() as tg:
+            io.low()
             result_tx, result_rx = create_memory_object_stream[ArbiterResult](0)
             tg.start_soon(action_loop, result_rx)
             modbus_args = RunServerArgs(port=modbus_port, baudrate=modbus_baudrate)
