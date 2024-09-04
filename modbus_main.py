@@ -1,7 +1,7 @@
 from collections import deque
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Iterable, Literal, Optional, Sequence, Tuple
+from typing import Iterable, Literal, Optional, Sequence, Tuple, cast
 from app import modbus
 from app.state import ArbiterResult, DoorSignal, DoorState, MaybeTarget
 from app.modbus import (
@@ -206,11 +206,35 @@ def find_serial_port() -> Tuple[Optional[str], Optional[str]]:
     radar_port = None
     modbus_port = None
     for port, _, _ in comports():
-        if "radar" in port.lower() or "ch340" in port.lower():
+        if "ch340" in port.lower():
             radar_port = port
-        if "modbus" in port.lower() or "cp210" in port.lower():
+        if "cp210" in port.lower():
             modbus_port = port
     return radar_port, modbus_port
+
+
+def probe_radar():
+    from serial.tools.list_ports import comports
+
+    radar_port: Optional[str] = None
+    rest_list: list[tuple[str, str, str]] = list(comports())
+
+    def filter_out(port: str) -> bool:
+        return "ttyUSB" in port and "ttyUSB_" not in port
+
+    rest_list = list(filter(lambda x: filter_out(x[0]), rest_list))
+    for port, desc, hwinfo in rest_list:
+        TIMEOUT = 0.5
+        with Serial(port, 256_000, timeout=TIMEOUT) as ser:
+            seq = ser.read_until(END_MAGIC)
+            if seq:
+                logger.info("Found radar at {}", port)
+                radar_port = cast(str, port)
+                break
+            else:
+                logger.warning("No radar found at {}", port)
+    rest_list = list(filter(lambda x: x[0] != radar_port, rest_list))
+    return radar_port, rest_list
 
 
 def print_ports():
@@ -241,7 +265,11 @@ def main(
     is_debug_radar = debug_radar
     if port == "" or modbus_port == "":
         logger.info("either radar port or modbus port is not specified; try to find it")
-        rp, mp = find_serial_port()
+        # rp, mp = find_serial_port()
+        mp = None
+        rp, rest = probe_radar()
+        if len(rest) > 0:
+            mp = rest[0][0]
         if rp is None or mp is None:
             logger.error("Cannot find the serial port")
             print_ports()
