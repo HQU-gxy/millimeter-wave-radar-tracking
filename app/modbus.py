@@ -7,7 +7,7 @@ from pymodbus.datastore import (
 )
 from pymodbus.device import ModbusDeviceIdentification
 from pymodbus.server import StartAsyncSerialServer
-from typing import Callable, Literal
+from typing import Callable, Literal, Tuple
 from dataclasses import dataclass
 from enum import Enum, auto
 from loguru import logger
@@ -48,8 +48,8 @@ class ObjectExists(Enum):
     The state of the object
     """
 
-    NO_OBJECT = auto()
-    OBJECT_EXISTS = auto()
+    NO_OBJECT = 0
+    OBJECT_EXISTS = 1
 
 
 @dataclass
@@ -92,10 +92,11 @@ class ObjectExistsDecider:
         return result
 
     @staticmethod
-    def unmarshal(data: int):
+    def unmarshal(data: int) -> Tuple["ObjectExistsDecider", ObjectExists]:
         r = ArbiterResult((data >> 4) & 0b11)
         s = SashState((data >> 2) & 0b11)
-        return ObjectExistsDecider(result=r, sash_state=s)
+        o = ObjectExists(data & 0b1)
+        return ObjectExistsDecider(result=r, sash_state=s), o
 
 
 # https://apmonitor.com/dde/index.php/Main/ModbusTransfer
