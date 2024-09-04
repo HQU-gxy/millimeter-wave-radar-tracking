@@ -197,8 +197,7 @@ async def action_loop(
     logger.info("action loop started")
     async with queue:
         async for result in queue:
-            if result != ArbiterResult.INDECISIVE:
-                holding_registers.set_object_exists(result)
+            holding_registers.set_object_exists(result)
 
 
 def find_serial_port() -> Tuple[Optional[str], Optional[str]]:

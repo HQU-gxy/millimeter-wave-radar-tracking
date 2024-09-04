@@ -4,23 +4,25 @@ from enum import Enum, auto
 from capture.model import END_MAGIC, Target, Targets
 from datetime import datetime, timedelta
 
+
 class ArbiterResult(Enum):
     """
     The result of the arbiter
     """
-    INDECISIVE = auto()
+
+    INDECISIVE = 0x0
     """
     reserved
     """
-    MOVING = auto()
+    MOVING = 1
     """
     object present and moving actively
     """
-    STILL = auto()
+    STILL = 2
     """
     object present but not moving actively
     """
-    IDLE = auto()
+    IDLE = 3
     """
     no object present
     """
