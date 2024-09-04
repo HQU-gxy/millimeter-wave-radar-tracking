@@ -11,6 +11,7 @@ from typing import Callable, Literal
 from dataclasses import dataclass
 from enum import Enum, auto
 from loguru import logger
+from .state import ArbiterResult
 import sys
 
 if sys.version_info >= (3, 12):
@@ -43,8 +44,58 @@ class SashState(Enum):
 
 
 class ObjectExists(Enum):
-    NO_OBJECT = 0
-    OBJECT_EXISTS = 1
+    """
+    The state of the object
+    """
+
+    NO_OBJECT = auto()
+    OBJECT_EXISTS = auto()
+
+
+@dataclass
+class ObjectExistsDecider:
+    """
+    MSB
+    7   always 1
+    6   always 0
+    5-4 Arbiter result
+    2-1 Sash state
+    0   Object exists
+    LSB
+    """
+
+    result: ArbiterResult
+    sash_state: SashState
+
+    @property
+    def is_object_exists(self) -> ObjectExists:
+        if self.result == ArbiterResult.MOVING:
+            return ObjectExists.OBJECT_EXISTS
+        elif self.result == ArbiterResult.STILL:
+            return (
+                ObjectExists.OBJECT_EXISTS
+                if self.sash_state == SashState.STOP
+                else ObjectExists.NO_OBJECT
+            )
+        elif self.result == ArbiterResult.IDLE:
+            return ObjectExists.NO_OBJECT
+        else:
+            raise ValueError("unexpected result {}".format(self.result))
+
+    def marshal(self) -> int:
+        result = 0b10000000  # Set bit 7 to 1 and bit 6 to 0
+        result |= (self.result.value & 0b11) << 4  # Arbiter result in bits 5-4
+        result |= (self.sash_state.value & 0b11) << 2  # Sash state in bits 3-2
+        result |= (
+            1 if self.is_object_exists == ObjectExists.OBJECT_EXISTS else 0
+        )  # Object exists in bit 0
+        return result
+
+    @staticmethod
+    def unmarshal(data: int):
+        r = ArbiterResult((data >> 4) & 0b11)
+        s = SashState((data >> 2) & 0b11)
+        return ObjectExistsDecider(result=r, sash_state=s)
 
 
 # https://apmonitor.com/dde/index.php/Main/ModbusTransfer
@@ -64,7 +115,7 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
     on_set_sash_state: Callable[[SashState], None] = lambda _: None
     on_set_led_ctrl: Callable[[int], None] = lambda _: None
 
-    object_exists: ObjectExists = ObjectExists.NO_OBJECT
+    arbiter_result: ArbiterResult = ArbiterResult.IDLE
     sash_state: SashState = SashState.STOP
     io_state: bool = False
 
@@ -72,9 +123,9 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
         """Initialize."""
         super().__init__(0, [0] * (OFFSET + 3))
 
-    def set_object_exists(self, value: ObjectExists):
+    def set_object_exists(self, value: ArbiterResult):
         """Set the OBJECT_EXISTS_REG."""
-        self.object_exists = value
+        self.arbiter_result = value
 
     @override
     def setValues(self, address: int, values: list[int] | int):
@@ -97,8 +148,10 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
     def getValues(self, address: int, count: int = 1):
         """Return the requested values from the datastore."""
         if address == OBJECT_EXISTS_REG:
-            val = 0x7f if self.object_exists == ObjectExists.OBJECT_EXISTS else 0x80
-            return [val]
+            payload = ObjectExistsDecider(
+                result=self.arbiter_result, sash_state=self.sash_state
+            )
+            return [payload.marshal()]
         elif address == SASH_STATE_REG:
             return [self.sash_state.value]
         elif address == LED_CTRL_REG:
@@ -109,6 +162,8 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
     @override
     def validate(self, address: int, count: int = 1):
         """Check to see if the request is in range."""
+        if address < OFFSET:
+            return False
         result = super().validate(address, count=count)
         return result
 

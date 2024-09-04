@@ -9,6 +9,7 @@ from app.modbus import (
     RunServerArgs,
     SashState,
     ObjectExists,
+    ObjectExistsDecider,
 )
 
 import anyio
@@ -190,15 +191,8 @@ async def action_loop(
     logger.info("action loop started")
     async with queue:
         async for result in queue:
-            if result == ArbiterResult.MOVING:
-                holding_registers.set_object_exists(ObjectExists.OBJECT_EXISTS)
-            elif result == ArbiterResult.STILL:
-                if sash_state != SashState.STOP:
-                    holding_registers.set_object_exists(ObjectExists.OBJECT_EXISTS)
-            elif result == ArbiterResult.IDLE:
-                holding_registers.set_object_exists(ObjectExists.NO_OBJECT)
-            elif result == ArbiterResult.INDECISIVE:
-                ...
+            if result != ArbiterResult.INDECISIVE:
+                holding_registers.set_object_exists(result)
 
 
 @click.command()
