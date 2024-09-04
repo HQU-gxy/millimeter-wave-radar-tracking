@@ -41,6 +41,7 @@ class SashState(Enum):
     STOP = 0
     RISING = 1
     FALLING = 2
+    MAX = 2
 
 
 class ObjectExists(Enum):
@@ -63,6 +64,10 @@ class ObjectExistsDecider:
     1   always 0
     0   Object exists
     LSB
+
+    MSB
+    7 6  5 4 3 2 1  0
+    1 0 |AR | SS| 0 |OE
     """
 
     result: ArbiterResult
@@ -92,7 +97,7 @@ class ObjectExistsDecider:
                 raise ValueError("last_valid_result is None")
 
     def marshal(self) -> int:
-        result = 0b10000000  # Set bit 7 to 1 and bit 6 to 0
+        result = 0b1000_0000  # Set bit 7 to 1 and bit 6 to 0
         result |= (self.result.value & 0b11) << 4  # Arbiter result in bits 5-4
         result |= (self.sash_state.value & 0b11) << 2  # Sash state in bits 3-2
         result |= self.is_object_exists.value  # Object exists in bit 0
@@ -148,11 +153,15 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
             return value
 
         logger.debug("0x{:04X} <- {}", address, values)
+        val = to_int(values)
         if address == SASH_STATE_REG:
-            self.sash_state = SashState(to_int(values))
+            if val > SashState.MAX.value:
+                logger.error("Invalid sash state: {}", val)
+                return
+            self.sash_state = SashState(val)
             self.on_set_sash_state(self.sash_state)
         elif address == LED_CTRL_REG:
-            self.io_state = bool(to_int(values))
+            self.io_state = bool(val)
             self.on_set_led_ctrl(self.io_state)
 
     @override
