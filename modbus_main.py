@@ -34,6 +34,7 @@ from app.stillness_fis import FisInput
 from app.stillness_fis import infer as infer_stillness
 from capture.model import END_MAGIC, Target, Targets
 
+is_debug_radar = False
 
 MAX_SIZE = 5
 ORIGIN_POINT = (0, 0)
@@ -126,7 +127,8 @@ async def infer_loop(
 
             def cond(t: Target) -> bool:
                 res = infer_range(t.coord[0], t.coord[1])
-                logger.debug("infer_range({}, {})={}", t.coord[0], t.coord[1], res)
+                if is_debug_radar:
+                    logger.debug("infer_range({}, {})={}", t.coord[0], t.coord[1], res)
                 return res > -0.5
 
             tgs = targets.targets
@@ -142,12 +144,14 @@ async def infer_loop(
                 t = None
             elif len(filtered_tgs) == 1:
                 t = targets.targets[0]
-                logger.info("single target {}", t)
+                if is_debug_radar:
+                    logger.info("single target {}", t)
             else:
                 t = min(
                     filtered_tgs, key=lambda x: calc_distance(x.coord, ORIGIN_POINT)
                 )
-                logger.warning("multiple targets {}; selected {}", targets, t)
+                if is_debug_radar:
+                    logger.warning("multiple targets {}; selected {}", targets, t)
             t_ = MaybeTarget(target=t, timestamp=datetime.now())
             queue.append(t_)
             # jsonl
@@ -177,7 +181,8 @@ async def infer_loop(
                     xAvg=x_avg, yAvg=y_avg, speedMean=speed_avg, speedStd=speed_std
                 )
                 result = infer_stillness(fis_in)
-                logger.info(f"Input={fis_in}; Result={result}")
+                if is_debug_radar:
+                    logger.info(f"Input={fis_in}; Result={result}")
                 if result > 0:
                     await tx.send(ArbiterResult.STILL)
                 else:
@@ -223,6 +228,7 @@ def print_ports():
 @click.option("--modbus-baudrate", type=int, default=115_200, help="Modbus Baudrate")
 @click.option("-o", "--output", type=str, help="Output file", default=None)
 @click.option("--overwrite", is_flag=True, help="Overwrite the output file")
+@click.option("--debug-radar", is_flag=True, help="Debug radar")
 def main(
     port: str,
     modbus_port: str,
@@ -230,7 +236,10 @@ def main(
     modbus_baudrate: int,
     output: Optional[str] = None,
     overwrite: bool = False,
+    debug_radar: bool = False,
 ):
+    global is_debug_radar
+    is_debug_radar = debug_radar
     if port == "" or modbus_port == "":
         logger.info("either radar port or modbus port is not specified; try to find it")
         rp, mp = find_serial_port()
