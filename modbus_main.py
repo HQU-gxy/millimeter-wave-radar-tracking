@@ -1,7 +1,8 @@
 from collections import deque
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Iterable, Literal, Optional, Sequence
+from typing import Iterable, Literal, Optional, Sequence, Tuple
+from app import modbus
 from app.state import ArbiterResult, DoorSignal, DoorState, MaybeTarget
 from app.modbus import (
     modbus_server_loop,
@@ -195,9 +196,29 @@ async def action_loop(
                 holding_registers.set_object_exists(result)
 
 
+def find_serial_port() -> Tuple[Optional[str], Optional[str]]:
+    from serial.tools.list_ports import comports
+
+    radar_port = None
+    modbus_port = None
+    for port, _, _ in comports():
+        if "radar" in port.lower() or "ch340" in port.lower():
+            radar_port = port
+        if "modbus" in port.lower() or "cp210" in port.lower():
+            modbus_port = port
+    return radar_port, modbus_port
+
+
+def print_ports():
+    from serial.tools.list_ports import comports
+
+    for port, desc, hwid in comports():
+        print(f"{port}: {desc} ({hwid})")
+
+
 @click.command()
-@click.argument("port", type=str)
-@click.argument("modbus_port", type=str)
+@click.option("--port", type=str, default="", help="Serial port for Radar")
+@click.option("--modbus-port", type=str, default="", help="Serial port for Modbus")
 @click.option("--baudrate", type=int, default=256_000, help="Baudrate")
 @click.option("--modbus-baudrate", type=int, default=115_200, help="Modbus Baudrate")
 @click.option("-o", "--output", type=str, help="Output file", default=None)
@@ -210,6 +231,16 @@ def main(
     output: Optional[str] = None,
     overwrite: bool = False,
 ):
+    if port == "" or modbus_port == "":
+        logger.info("either radar port or modbus port is not specified; try to find it")
+        rp, mp = find_serial_port()
+        if rp is None or mp is None:
+            logger.error("Cannot find the serial port")
+            print_ports()
+            exit(1)
+        port = rp
+        modbus_port = mp
+    logger.info("Radar port={}; Modbus port={}", port, modbus_port)
     check_anyio_version()
     if output is None:
         logger.info("no output file specified, not output the result to file")
