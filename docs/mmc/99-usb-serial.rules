@@ -1,0 +1,10 @@
+# /etc/udev/rules.d/99-usb-serial.rules
+# sudo udevadm control --reload-rules
+
+# CH340 serial converter
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", SYMLINK+="ttyUSB_CH340"
+
+# CP210x UART Bridge
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="ttyUSB_CP210x"
+
+# Bus is not reliable
