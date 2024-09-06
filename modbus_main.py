@@ -217,7 +217,7 @@ def probe_radar():
     from serial.tools.list_ports import comports
 
     radar_port: Optional[str] = None
-    rest_list: list[tuple[str, str, str]] = list(comports())
+    rest_list: list[tuple[str, str, str]] = list(comports()) # type: ignore
 
     def filter_out(port: str) -> bool:
         return "ttyUSB" in port and "ttyUSB_" not in port

@@ -7,7 +7,7 @@ from pymodbus.datastore import (
 )
 from pymodbus.device import ModbusDeviceIdentification
 from pymodbus.server import StartAsyncSerialServer
-from typing import Callable, Literal, Optional, Tuple
+from typing import Callable, Literal, Optional, Tuple, TypedDict, cast, overload
 from dataclasses import dataclass
 from enum import Enum, auto
 from loguru import logger
@@ -66,8 +66,8 @@ class ObjectExistsDecider:
     LSB
 
     MSB
-    7 6  5 4 3 2 1  0
-    1 0 |AR | SS| 0 |OE
+    7 6  54 32  1  0
+    1 0 |AR|SS| 0 |OE
     """
 
     result: ArbiterResult
@@ -118,6 +118,71 @@ class ObjectExistsDecider:
 # https://product-help.schneider-electric.com/ED/ES_Power/NT-NW_Modbus_IEC_Guide/EDMS/DOCA0054EN/DOCA0054xx/Master_NS_Modbus_Protocol/Master_NS_Modbus_Protocol-5.htm
 
 
+@dataclass
+class ModbusRegisterCallback:
+    read: Callable[[], int]
+    write: Callable[[int], None]
+
+    @staticmethod
+    def default() -> "ModbusRegisterCallback":
+        """
+        Create a default callback that always returns 0 and does nothing on write.
+        """
+        return ModbusRegisterCallback(read=lambda: 0, write=lambda _: None)
+
+
+RegistersCallbacks = dict[str, ModbusRegisterCallback]
+
+
+class RadarRegistersCallbacks(TypedDict):
+    OE: ModbusRegisterCallback
+    SS: ModbusRegisterCallback
+    LED: ModbusRegisterCallback
+
+
+class RadarRegisters:
+    REGISTER_NAMES = ["OE", "SS", "LED"]
+    CALLBACK_MAP: RegistersCallbacks = {}
+
+    def set_callbacks(self, cb: RadarRegistersCallbacks):
+        self.CALLBACK_MAP = cast(RegistersCallbacks, cb)
+
+    def get_by_key(self, key: str) -> int:
+        return self.CALLBACK_MAP[key].read()
+
+    def get_by_index(self, index: int) -> int:
+        return self.get_by_key(self.REGISTER_NAMES[index])
+
+    def get_by_range(self, start: int, count: int = 1) -> list[int]:
+        return [self.get_by_index(i) for i in range(start, start + count)]
+
+    def set_by_key(self, key: str, value: int):
+        self.CALLBACK_MAP[key].write(value)
+
+    def set_by_index(self, index: int, value: int):
+        self.set_by_key(self.REGISTER_NAMES[index], value)
+
+    def set_by_range(self, start: int, values: list[int]):
+        for i, value in enumerate(values):
+            self.set_by_index(start + i, value)
+
+    @overload
+    def __getitem__(self, key: str) -> int: ...
+    @overload
+    def __getitem__(self, key: int) -> int: ...
+    @overload
+    def __getitem__(self, key: slice) -> list[int]: ...
+
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            return self.get_by_key(key)
+        if isinstance(key, int):
+            return self.get_by_index(key)
+        if isinstance(key, slice):
+            return self.get_by_range(key.start, key.stop)
+        raise ValueError(f"Invalid key type: {type(key)}")
+
+
 # we're only use holding registers
 class CallbackDataBlock(ModbusSequentialDataBlock):
     """
@@ -128,6 +193,7 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
     on_set_sash_state: Callable[[SashState], None] = lambda _: None
     on_set_led_ctrl: Callable[[int], None] = lambda _: None
 
+    _callbacks: RadarRegisters = RadarRegisters()
     _last_valid_arbiter_result: ArbiterResult = ArbiterResult.IDLE
     arbiter_result: ArbiterResult = ArbiterResult.IDLE
     sash_state: SashState = SashState.STOP
@@ -137,6 +203,41 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
         """Initialize."""
         super().__init__(0, [0] * (OFFSET + 3))
 
+        def oe_w(_: int):
+            pass
+
+        def oe_r() -> int:
+            return ObjectExistsDecider(
+                result=self.arbiter_result,
+                sash_state=self.sash_state,
+                last_valid_result=self._last_valid_arbiter_result,
+            ).marshal()
+
+        def ss_w(value: int):
+            if value > SashState.MAX.value:
+                logger.error("Invalid sash state: {}", value)
+                return
+            self.sash_state = SashState(value)
+            self.on_set_sash_state(self.sash_state)
+
+        def ss_r() -> int:
+            return self.sash_state.value
+
+        def led_w(value: int):
+            self.io_state = bool(value)
+            self.on_set_led_ctrl(self.io_state)
+
+        def led_r() -> int:
+            return int(self.io_state)
+
+        self._callbacks.set_callbacks(
+            {
+                "OE": ModbusRegisterCallback(read=oe_r, write=oe_w),
+                "SS": ModbusRegisterCallback(read=ss_r, write=ss_w),
+                "LED": ModbusRegisterCallback(read=led_r, write=led_w),
+            }
+        )
+
     def set_object_exists(self, value: ArbiterResult):
         """Set the OBJECT_EXISTS_REG."""
         self.arbiter_result = value
@@ -144,42 +245,21 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
             self._last_valid_arbiter_result = value
 
     @override
-    def setValues(self, address: int, values: list[int] | int):
+    def setValues(self, address: int, values: list[int]):
         """Set the requested values of the datastore."""
 
-        def to_int(value: int | list[int]) -> int:
-            if isinstance(value, list):
-                return int.from_bytes(bytes(value), "big")
-            return value
-
         logger.debug("0x{:04X} <- {}", address, values)
-        val = to_int(values)
-        if address == SASH_STATE_REG:
-            if val > SashState.MAX.value:
-                logger.error("Invalid sash state: {}", val)
-                return
-            self.sash_state = SashState(val)
-            self.on_set_sash_state(self.sash_state)
-        elif address == LED_CTRL_REG:
-            self.io_state = bool(val)
-            self.on_set_led_ctrl(self.io_state)
+        if address < OFFSET:
+            raise ValueError(f"Invalid address: {address}")
+        self._callbacks.set_by_range(address - OFFSET, values)
 
     @override
     def getValues(self, address: int, count: int = 1):
         """Return the requested values from the datastore."""
-        if address == OBJECT_EXISTS_REG:
-            payload = ObjectExistsDecider(
-                result=self.arbiter_result,
-                sash_state=self.sash_state,
-                last_valid_result=self._last_valid_arbiter_result,
-            )
-            return [payload.marshal()]
-        elif address == SASH_STATE_REG:
-            return [self.sash_state.value]
-        elif address == LED_CTRL_REG:
-            return [int(self.io_state)]
-        else:
-            return super().getValues(address, count=count)
+        logger.debug("0x{:04X} ({}) ->", address, count)
+        if address < OFFSET:
+            raise ValueError(f"Invalid address: {address}")
+        return self._callbacks.get_by_range(address - OFFSET, count)
 
     @override
     def validate(self, address: int, count: int = 1):
