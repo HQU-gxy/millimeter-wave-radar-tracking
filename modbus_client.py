@@ -23,9 +23,9 @@ async def async_main(port: str):
     await client.write_register(LED_CTRL_REG, int(toggle), slave=SLAVE_ADDR)
     while True:
         await anyio.sleep(1)
-        val = await client.read_holding_registers(OBJECT_EXISTS_REG, slave=SLAVE_ADDR)
+        val = await client.read_holding_registers(OBJECT_EXISTS_REG, count=3, slave=SLAVE_ADDR)
+        logger.info("0x{:04X} -> {}", OBJECT_EXISTS_REG, val.registers)
         value = val.registers[0]
-        logger.info("0x{:04X} -> {}", OBJECT_EXISTS_REG, value)
         dec, o = ObjectExistsDecider.unmarshal(value)
         logger.info("ObjectExistsDecider={}; E={}", dec, o)
         toggle = not toggle

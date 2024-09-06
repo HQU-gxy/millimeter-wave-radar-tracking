@@ -259,10 +259,11 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
     @override
     def getValues(self, address: int, count: int = 1):
         """Return the requested values from the datastore."""
-        logger.debug("0x{:04X} ({}) ->", address, count)
         if address < OFFSET:
             raise ValueError(f"Invalid address: {address}")
-        return self._callbacks.get_by_range(address - OFFSET, count)
+        val = self._callbacks.get_by_range(address - OFFSET, count)
+        logger.debug("0x{:04X} ({}) -> {}", address, count, val)
+        return val
 
     @override
     def validate(self, address: int, count: int = 1):
