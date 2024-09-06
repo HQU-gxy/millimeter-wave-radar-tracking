@@ -217,7 +217,7 @@ def probe_radar():
     from serial.tools.list_ports import comports
 
     radar_port: Optional[str] = None
-    rest_list: list[tuple[str, str, str]] = list(comports()) # type: ignore
+    rest_list: list[tuple[str, str, str]] = list(comports())  # type: ignore
 
     def filter_out(port: str) -> bool:
         return "ttyUSB" in port and "ttyUSB_" not in port
@@ -228,6 +228,11 @@ def probe_radar():
         with Serial(port, 256_000, timeout=TIMEOUT) as ser:
             seq = ser.read_until(END_MAGIC)
             if seq:
+                try:
+                    Targets.unmarshal(seq)
+                except ValueError:
+                    logger.warning("Invalid data from radar at {}; continue", port)
+                    continue
                 logger.info("Found radar at {}", port)
                 radar_port = cast(str, port)
                 break
