@@ -166,6 +166,9 @@ class RadarRegisters:
         for i, value in enumerate(values):
             self.set_by_index(start + i, value)
 
+    def __len__(self):
+        return len(self.REGISTER_NAMES)
+
     @overload
     def __getitem__(self, key: str) -> int: ...
     @overload
@@ -265,6 +268,8 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
     def validate(self, address: int, count: int = 1):
         """Check to see if the request is in range."""
         if address < OFFSET:
+            return False
+        if count > len(self._callbacks):
             return False
         result = super().validate(address, count=count)
         return result
