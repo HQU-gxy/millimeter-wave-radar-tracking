@@ -133,12 +133,16 @@ async def infer_loop(
                     logger.debug("infer_range({}, {})={}", t.coord[0], t.coord[1], res)
                 return res > -0.5
 
-            tgs = targets.targets
-            before_len = len(tgs)
+            before_len = len(targets.targets)
             filtered_tgs = list(filter(cond, targets.targets))
-            after_len = len(tgs)
+            after_len = len(filtered_tgs)
             if before_len != after_len:
-                logger.warning("before={}; after={}", targets, Targets(targets=tgs))
+                logger.debug(
+                    "before={}; after={}", targets, Targets(targets=filtered_tgs)
+                )
+                holding_registers.has_filtered = True
+            else:
+                holding_registers.has_filtered = False
 
             # find the distance that is closest to the origin point
             if len(filtered_tgs) == 0:

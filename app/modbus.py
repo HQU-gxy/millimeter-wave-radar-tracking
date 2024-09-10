@@ -61,17 +61,18 @@ class ObjectExistsDecider:
     6   always 0
     5-4 Arbiter result
     3-2 Sash state
-    1   always 0
+    1   has filter
     0   Object exists
     LSB
 
     MSB
     7 6  54 32  1  0
-    1 0 |AR|SS| 0 |OE
+    1 0 |AR|SS| F |OE
     """
 
     result: ArbiterResult
     sash_state: SashState
+    has_filtered: bool
     last_valid_result: Optional[ArbiterResult] = None
 
     @property
@@ -118,6 +119,7 @@ class ObjectExistsDecider:
         result = 0b1000_0000  # Set bit 7 to 1 and bit 6 to 0
         result |= (self.result.value & 0b11) << 4  # Arbiter result in bits 5-4
         result |= (self.sash_state.value & 0b11) << 2  # Sash state in bits 3-2
+        result |= int(self.has_filtered) << 1  # Has filter in bit 1
         result |= self.is_object_exists.value  # Object exists in bit 0
         return result
 
@@ -125,8 +127,9 @@ class ObjectExistsDecider:
     def unmarshal(data: int) -> Tuple["ObjectExistsDecider", ObjectExists]:
         r = ArbiterResult((data >> 4) & 0b11)
         s = SashState((data >> 2) & 0b11)
+        f = bool((data >> 1) & 0b1)
         o = ObjectExists(data & 0b1)
-        return ObjectExistsDecider(result=r, sash_state=s), o
+        return ObjectExistsDecider(result=r, sash_state=s, has_filtered=f), o
 
 
 # https://apmonitor.com/dde/index.php/Main/ModbusTransfer
@@ -219,6 +222,7 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
     arbiter_result: ArbiterResult = ArbiterResult.IDLE
     sash_state: SashState = SashState.STOP
     io_state: bool = False
+    has_filtered: bool = False
 
     def __init__(self):
         """Initialize."""
@@ -231,6 +235,7 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
             d = ObjectExistsDecider(
                 result=self.arbiter_result,
                 sash_state=self.sash_state,
+                has_filtered=self.has_filtered,
                 last_valid_result=self._last_valid_arbiter_result,
             )
             logger.info(
