@@ -1,5 +1,6 @@
 from collections import deque
 from datetime import datetime, timedelta
+import glob
 from pathlib import Path
 from typing import Iterable, Literal, Optional, Sequence, Tuple, cast
 from app import modbus
@@ -36,13 +37,14 @@ from capture.model import END_MAGIC, Target, Targets
 
 is_debug_radar = False
 
-MAX_SIZE = 5
+MAX_SIZE = 6
 ORIGIN_POINT = (0, 0)
 holding_registers = CallbackDataBlock()
-io = GPIO()
+io: Optional[GPIO] = None
 
 
 def on_led_ctrl(value: int):
+    assert io is not None
     if value > 0:
         logger.info("LED set")
         io.high()
@@ -308,7 +310,9 @@ def main(
 
     async def _main():
         # https://github.com/agronholm/anyio/discussions/521
+        global io
         async with create_task_group() as tg:
+            io = GPIO()
             io.low()
             result_tx, result_rx = create_memory_object_stream[ArbiterResult](0)
             tg.start_soon(action_loop, result_rx)

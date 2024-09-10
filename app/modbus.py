@@ -76,25 +76,43 @@ class ObjectExistsDecider:
 
     @property
     def is_object_exists(self) -> ObjectExists:
-        if self.result == ArbiterResult.MOVING:
-            return ObjectExists.OBJECT_EXISTS
-        elif self.result == ArbiterResult.STILL:
-            return (
-                ObjectExists.OBJECT_EXISTS
-                if self.sash_state == SashState.STOP
-                else ObjectExists.NO_OBJECT
-            )
-        elif self.result == ArbiterResult.IDLE:
-            return ObjectExists.NO_OBJECT
-        else:
-            if self.last_valid_result is not None:
-                return (
-                    ObjectExists.NO_OBJECT
-                    if self.last_valid_result == ArbiterResult.IDLE
-                    else ObjectExists.OBJECT_EXISTS
-                )
+        def arbiter_result():
+            if self.result == ArbiterResult.INDECISIVE:
+                if self.last_valid_result is None:
+                    raise ValueError("no last_valid_result when result is indecisive")
+                else:
+                    if self.last_valid_result == ArbiterResult.INDECISIVE:
+                        raise ValueError(
+                            "both result and last_valid_result are indecisive"
+                        )
+                    else:
+                        return self.last_valid_result
             else:
-                raise ValueError("last_valid_result is None")
+                return self.result
+
+        r = arbiter_result()
+        if self.sash_state == SashState.FALLING:
+            # ignore still when falling
+            if r == ArbiterResult.STILL:
+                return ObjectExists.NO_OBJECT
+            elif r == ArbiterResult.MOVING:
+                return ObjectExists.OBJECT_EXISTS
+            elif r == ArbiterResult.IDLE:
+                return ObjectExists.NO_OBJECT
+            else:
+                raise ValueError(f"Invalid result: {self.result}")
+        elif self.sash_state == SashState.RISING:
+            if r == ArbiterResult.IDLE:
+                return ObjectExists.NO_OBJECT
+            else:
+                return ObjectExists.OBJECT_EXISTS
+        else:
+            if r == ArbiterResult.MOVING or r == ArbiterResult.STILL:
+                return ObjectExists.OBJECT_EXISTS
+            elif r == ArbiterResult.IDLE:
+                return ObjectExists.NO_OBJECT
+            else:
+                raise ValueError(f"Invalid result: {self.result}")
 
     def marshal(self) -> int:
         result = 0b1000_0000  # Set bit 7 to 1 and bit 6 to 0
@@ -210,11 +228,15 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
             pass
 
         def oe_r() -> int:
-            return ObjectExistsDecider(
+            d = ObjectExistsDecider(
                 result=self.arbiter_result,
                 sash_state=self.sash_state,
                 last_valid_result=self._last_valid_arbiter_result,
-            ).marshal()
+            )
+            logger.info(
+                "ar={}; ss={}; oe={}", d.result, d.sash_state, d.is_object_exists
+            )
+            return d.marshal()
 
         def ss_w(value: int):
             if value > SashState.MAX.value:
@@ -262,7 +284,7 @@ class CallbackDataBlock(ModbusSequentialDataBlock):
         if address < OFFSET:
             raise ValueError(f"Invalid address: {address}")
         val = self._callbacks.get_by_range(address - OFFSET, count)
-        logger.debug("0x{:04X} ({}) -> {}", address, count, val)
+        # logger.debug("0x{:04X} ({}) -> {}", address, count, val)
         return val
 
     @override
